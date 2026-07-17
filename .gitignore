@@ -1,7 +1,7 @@
 # Dependencies
 node_modules/
 
-# Environment files (ห้าม push รหัสผ่านขึ้น Git)
+# Environment (ห้าม push credentials)
 .env
 .env.local
 .env.*.local
@@ -10,9 +10,6 @@ node_modules/
 dist/
 build/
 
-# Prisma generated client
-backend/node_modules/
-
 # Logs
 *.log
 npm-debug.log*
@@ -20,7 +17,3 @@ npm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
-
-# Docker volumes
-postgres_data/
-mysql_data/

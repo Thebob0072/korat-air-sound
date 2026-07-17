@@ -136,7 +136,7 @@ describe('POSDashboard', () => {
     it('shows products for the selected category after clicking a category button', async () => {
       const user = userEvent.setup();
       vi.mocked(getProducts).mockResolvedValue([
-        makeProduct({ id: 'p1', name: 'เครื่องเสียง Pioneer', category: ProductCategory.CentralLock }),
+        makeProduct({ id: 'p1', name: 'กุญแจ Pioneer', category: ProductCategory.CentralLock }),
         makeProduct({ id: 'p2', name: 'ฟิล์มเลือดปลาม้า', category: ProductCategory.Tint }),
       ]);
 
@@ -145,10 +145,10 @@ describe('POSDashboard', () => {
       // Wait for products query to complete
       await waitFor(() => expect(getProducts).toHaveBeenCalled());
 
-      await user.click(screen.getByText('เครื่องเสียง'));
+      await user.click(screen.getByText('กุญแจรีโมท'));
 
       await waitFor(() => {
-        expect(screen.getByText('เครื่องเสียง Pioneer')).toBeInTheDocument();
+        expect(screen.getByText('กุญแจ Pioneer')).toBeInTheDocument();
         expect(screen.queryByText('ฟิล์มเลือดปลาม้า')).not.toBeInTheDocument();
       });
     });
@@ -156,16 +156,16 @@ describe('POSDashboard', () => {
     it('hides products when the active category is deselected', async () => {
       const user = userEvent.setup();
       vi.mocked(getProducts).mockResolvedValue([
-        makeProduct({ name: 'เครื่องเสียง Pioneer', category: ProductCategory.CentralLock }),
+        makeProduct({ name: 'กุญแจ Pioneer', category: ProductCategory.CentralLock }),
       ]);
 
       renderDashboard();
 
-      await user.click(screen.getByText('เครื่องเสียง')); // activate
-      await user.click(screen.getByText('เครื่องเสียง')); // deactivate
+      await user.click(screen.getByText('กุญแจรีโมท')); // activate
+      await user.click(screen.getByText('กุญแจรีโมท')); // deactivate
 
       await waitFor(() => {
-        expect(screen.queryByText('เครื่องเสียง Pioneer')).not.toBeInTheDocument();
+        expect(screen.queryByText('กุญแจ Pioneer')).not.toBeInTheDocument();
       });
     });
   });

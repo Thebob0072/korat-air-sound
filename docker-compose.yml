@@ -1,48 +1,35 @@
 version: '3.8'
 
 services:
-  # ── Local MySQL (ใช้แทน Cloud SQL ตอน dev) ────────────────────────────────
   mysql:
-    image: mysql:8.4
+    image: mysql:8.0
     container_name: korat_mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: korat_pass
+      MYSQL_ROOT_PASSWORD: korat_root_pass
+      MYSQL_USER: korat_user
+      MYSQL_PASSWORD: korat_pass
       MYSQL_DATABASE: korat_air_sound
     ports:
       - '3306:3306'
     volumes:
       - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-pkorat_pass']
-      interval: 10s
-      timeout: 5s
-      retries: 10
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
 
-  # ── Backend ────────────────────────────────────────────────────────────────
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    build: ./backend
     container_name: korat_backend
     restart: unless-stopped
+    environment:
+      DATABASE_URL: mysql://korat_user:korat_pass@mysql:3306/korat_air_sound
+      NODE_ENV: production
     ports:
       - '3001:3001'
-    environment:
-      # ใช้ local MySQL (เปลี่ยนเป็น Cloud SQL URL ได้ถ้าต้องการ)
-      DATABASE_URL: mysql://root:korat_pass@mysql:3306/korat_air_sound
-      NODE_ENV: development
     depends_on:
-      mysql:
-        condition: service_healthy
+      - mysql
 
-  # ── Frontend ───────────────────────────────────────────────────────────────
-  # หมายเหตุ: frontend นี้ build static แล้วเสิร์ฟด้วย nginx (production mode)
-  # ถ้าต้องการ dev mode ที่มี hot-reload ให้รัน: cd frontend && npm run dev
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    build: ./frontend
     container_name: korat_frontend
     restart: unless-stopped
     ports:
