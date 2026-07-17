@@ -6,7 +6,6 @@ import {
   Square as GlassIcon,
   Volume2,
   Wrench,
-  Key,
   Search,
   Minus,
   Plus,
@@ -50,7 +49,6 @@ const CATS = [
   { value: ProductCategory.AirCon,      label: 'ระบบแอร์',        Icon: Wind,      tintSpecial: false, airconSpecial: true  },
   { value: ProductCategory.Tint,        label: 'ฟิล์มกรองแสง',    Icon: Eye,       tintSpecial: true,  airconSpecial: false },
   { value: ProductCategory.Glass,       label: 'กระจกรถยนต์',     Icon: GlassIcon, tintSpecial: false, glassSpecial: true  },
-  { value: ProductCategory.CentralLock, label: 'กุญแจรีโมท',      Icon: Key,       tintSpecial: false },
   { value: ProductCategory.Sound,       label: 'เครื่องเสียง',    Icon: Volume2,   tintSpecial: false, soundSpecial: true  },
   { value: ProductCategory.ServiceFee,  label: 'อื่นๆ',             Icon: Wrench,    tintSpecial: false, otherSpecial: true  },
 ] as const;

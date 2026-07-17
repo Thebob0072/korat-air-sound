@@ -133,40 +133,26 @@ describe('POSDashboard', () => {
   });
 
   describe('category selection', () => {
-    it('shows products for the selected category after clicking a category button', async () => {
-      const user = userEvent.setup();
-      vi.mocked(getProducts).mockResolvedValue([
-        makeProduct({ id: 'p1', name: 'กุญแจ Pioneer', category: ProductCategory.CentralLock }),
-        makeProduct({ id: 'p2', name: 'ฟิล์มเลือดปลาม้า', category: ProductCategory.Tint }),
-      ]);
-
+    it('renders all 5 category buttons', async () => {
+      vi.mocked(getProducts).mockResolvedValue([]);
       renderDashboard();
 
-      // Wait for products query to complete
       await waitFor(() => expect(getProducts).toHaveBeenCalled());
 
-      await user.click(screen.getByText('กุญแจรีโมท'));
-
-      await waitFor(() => {
-        expect(screen.getByText('กุญแจ Pioneer')).toBeInTheDocument();
-        expect(screen.queryByText('ฟิล์มเลือดปลาม้า')).not.toBeInTheDocument();
-      });
+      expect(screen.getByText('ระบบแอร์')).toBeInTheDocument();
+      expect(screen.getByText('ฟิล์มกรองแสง')).toBeInTheDocument();
+      expect(screen.getByText('กระจกรถยนต์')).toBeInTheDocument();
+      expect(screen.getByText('เครื่องเสียง')).toBeInTheDocument();
+      expect(screen.getByText('อื่นๆ')).toBeInTheDocument();
     });
 
-    it('hides products when the active category is deselected', async () => {
-      const user = userEvent.setup();
-      vi.mocked(getProducts).mockResolvedValue([
-        makeProduct({ name: 'กุญแจ Pioneer', category: ProductCategory.CentralLock }),
-      ]);
-
+    it('does not show กุญแจรีโมท button', async () => {
+      vi.mocked(getProducts).mockResolvedValue([]);
       renderDashboard();
 
-      await user.click(screen.getByText('กุญแจรีโมท')); // activate
-      await user.click(screen.getByText('กุญแจรีโมท')); // deactivate
+      await waitFor(() => expect(getProducts).toHaveBeenCalled());
 
-      await waitFor(() => {
-        expect(screen.queryByText('กุญแจ Pioneer')).not.toBeInTheDocument();
-      });
+      expect(screen.queryByText('กุญแจรีโมท')).not.toBeInTheDocument();
     });
   });
 
