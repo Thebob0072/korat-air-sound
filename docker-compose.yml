@@ -1,18 +1,54 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: korat_air_sound_db
+  # ── Local MySQL (ใช้แทน Cloud SQL ตอน dev) ────────────────────────────────
+  mysql:
+    image: mysql:8.4
+    container_name: korat_mysql
     restart: unless-stopped
     environment:
-      POSTGRES_USER: korat_user
-      POSTGRES_PASSWORD: korat_pass
-      POSTGRES_DB: korat_air_sound
+      MYSQL_ROOT_PASSWORD: korat_pass
+      MYSQL_DATABASE: korat_air_sound
     ports:
-      - '5432:5432'
+      - '3306:3306'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-pkorat_pass']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ── Backend ────────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: korat_backend
+    restart: unless-stopped
+    ports:
+      - '3001:3001'
+    environment:
+      # ใช้ local MySQL (เปลี่ยนเป็น Cloud SQL URL ได้ถ้าต้องการ)
+      DATABASE_URL: mysql://root:korat_pass@mysql:3306/korat_air_sound
+      NODE_ENV: development
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # ── Frontend ───────────────────────────────────────────────────────────────
+  # หมายเหตุ: frontend นี้ build static แล้วเสิร์ฟด้วย nginx (production mode)
+  # ถ้าต้องการ dev mode ที่มี hot-reload ให้รัน: cd frontend && npm run dev
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: korat_frontend
+    restart: unless-stopped
+    ports:
+      - '8080:8080'
+    depends_on:
+      - backend
 
 volumes:
-  postgres_data:
+  mysql_data:
