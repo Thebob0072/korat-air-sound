@@ -1,0 +1,27 @@
+/* ── Thermal / A4 print styles ────────────────────────────────────────────── */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  body {
+    background: white;
+    color: black;
+    font-size: 11pt;
+  }
+
+  .print-container {
+    width: 190mm;
+    padding: 10mm 15mm;
+    margin: 0 auto;
+  }
+
+  /* A4 page break helpers */
+  .page-break-before {
+    page-break-before: always;
+  }
+}

@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Customer {
+  id        String    @id @default(uuid())
+  name      String
+  phone     String    @unique
+  createdAt DateTime  @default(now()) @map("created_at")
+  vehicles  Vehicle[]
+
+  @@map("customers")
+}
+
+model Vehicle {
+  id           String   @id @default(uuid())
+  licensePlate String   @unique @map("license_plate")
+  brand        String
+  model        String
+  customerId   String   @map("customer_id")
+  orders       Order[]
+  customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([licensePlate])
+  @@map("vehicles")
+}
+
+model Product {
+  id            String          @id @default(uuid())
+  sku           String          @unique
+  name          String
+  category      ProductCategory
+  costPrice     Decimal         @map("cost_price") @db.Decimal(12, 2)
+  sellingPrice  Decimal         @map("selling_price") @db.Decimal(12, 2)
+  stockQuantity Int             @default(0) @map("stock_quantity")
+  supplier      String?         @map("supplier")
+  brand         String?         @map("brand")
+  productDate   DateTime?       @map("product_date")
+  squareFeet    Decimal?        @map("square_feet") @db.Decimal(10, 2)
+  modelYear     Int?            @map("model_year")
+  orderItems    OrderItem[]
+
+  @@map("products")
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  orderNumber String      @unique @map("order_number")
+  vehicleId   String      @map("vehicle_id")
+  status      OrderStatus @default(Draft)
+  totalAmount Decimal     @default(0) @map("total_amount") @db.Decimal(12, 2)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  orderItems  OrderItem[]
+  vehicle     Vehicle     @relation(fields: [vehicleId], references: [id])
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id              String  @id @default(uuid())
+  orderId         String  @map("order_id")
+  productId       String? @map("product_id")
+  customLabel     String? @map("custom_label") @db.VarChar(300)
+  technicianName  String? @map("technician_name") @db.VarChar(300)
+  quantity        Int
+  unitPrice       Decimal @map("unit_price") @db.Decimal(12, 2)
+  subtotalPrice   Decimal @map("subtotal_price") @db.Decimal(12, 2)
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product       Product? @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+enum ProductCategory {
+  AirCon
+  Tint
+  Glass
+  CentralLock
+  Sound
+  ServiceFee
+}
+
+enum OrderStatus {
+  Draft
+  Quoted
+  Paid
+  Cancelled
+}

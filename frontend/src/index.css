@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 14% 93%;         /* #ECEAE6 */
+    --foreground: 20 4% 18%;          /* #2D2D2D */
+    --card: 0 0% 100%;                /* white */
+    --card-foreground: 20 4% 18%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 4% 18%;
+    --primary: 160 8% 31%;            /* #3B3A36 charcoal */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 40 8% 88%;           /* #E5E5E3 */
+    --secondary-foreground: 20 4% 18%;
+    --muted: 40 8% 88%;
+    --muted-foreground: 40 4% 53%;    /* #878681 */
+    --accent: 40 10% 84%;             /* #D8D5D0 */
+    --accent-foreground: 20 4% 18%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 40 8% 88%;              /* #E5E5E3 */
+    --input: 40 8% 88%;
+    --ring: 160 8% 31%;
+    --radius: 1rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', 'Noto Sans Thai', system-ui, sans-serif;
+  }
+}
+
+/* Print styles extracted to src/styles/print.css */
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}

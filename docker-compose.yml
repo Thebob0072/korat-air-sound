@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: korat_air_sound_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: korat_user
+      POSTGRES_PASSWORD: korat_pass
+      POSTGRES_DB: korat_air_sound
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
