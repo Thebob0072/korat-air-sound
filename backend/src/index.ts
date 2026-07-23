@@ -1,8 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import swaggerUi from 'swagger-ui-express';
 import { router } from './routes';
 import { errorHandler } from './middleware/errorHandler';
+import { swaggerSpec } from './lib/swagger';
 
 dotenv.config();
 
@@ -14,6 +16,7 @@ const ALLOWED_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:4173',
   'https://korat-frontend-171089417301.asia-southeast1.run.app',
+  'https://audithebob.art',
   ...(process.env.CORS_ORIGIN ? [process.env.CORS_ORIGIN] : []),
 ];
 app.use(cors({
@@ -27,6 +30,10 @@ app.use(express.json());
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use('/api', router);
+
+// ── Swagger UI ────────────────────────────────────────────────────────────────
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get('/api-docs.json', (_req, res) => res.json(swaggerSpec));
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
