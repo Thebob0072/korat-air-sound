@@ -46,12 +46,47 @@ import { ProductCategory } from '@/types';
 // ── Category config ───────────────────────────────────────────────────────────
 
 const CATS = [
-  { value: ProductCategory.AirCon,      label: 'ระบบแอร์',        Icon: Wind,      tintSpecial: false, airconSpecial: true  },
-  { value: ProductCategory.Tint,        label: 'ฟิล์มกรองแสง',    Icon: Eye,       tintSpecial: true,  airconSpecial: false },
-  { value: ProductCategory.Glass,       label: 'กระจกรถยนต์',     Icon: GlassIcon, tintSpecial: false, glassSpecial: true  },
-  { value: ProductCategory.Sound,       label: 'เครื่องเสียง',    Icon: Volume2,   tintSpecial: false, soundSpecial: true  },
-  { value: ProductCategory.ServiceFee,  label: 'อื่นๆ',             Icon: Wrench,    tintSpecial: false, otherSpecial: true  },
-] as const;
+  {
+    value: ProductCategory.AirCon,
+    label: 'ระบบแอร์',
+    Icon: Wind,
+    iconBg: 'bg-sky-100',
+    iconFg: 'text-sky-600',
+    airconSpecial: true,
+  },
+  {
+    value: ProductCategory.Tint,
+    label: 'ฟิล์มกรองแสง',
+    Icon: Eye,
+    iconBg: 'bg-violet-100',
+    iconFg: 'text-violet-600',
+    tintSpecial: true,
+  },
+  {
+    value: ProductCategory.Glass,
+    label: 'กระจกรถยนต์',
+    Icon: GlassIcon,
+    iconBg: 'bg-teal-100',
+    iconFg: 'text-teal-600',
+    glassSpecial: true,
+  },
+  {
+    value: ProductCategory.Sound,
+    label: 'เครื่องเสียง',
+    Icon: Volume2,
+    iconBg: 'bg-orange-100',
+    iconFg: 'text-orange-600',
+    soundSpecial: true,
+  },
+  {
+    value: ProductCategory.ServiceFee,
+    label: 'อื่นๆ / ค่าแรง',
+    Icon: Wrench,
+    iconBg: 'bg-stone-100',
+    iconFg: 'text-stone-500',
+    otherSpecial: true,
+  },
+];
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -357,53 +392,33 @@ export default function POSDashboard() {
             </div>
           </div>
 
-          {/* Bento category grid */}
+          {/* Category grid */}
           <div className="px-3 sm:px-6 pb-3 sm:pb-4">
-            <div className="grid grid-cols-5 gap-1.5 sm:gap-3">
+            <div className="grid grid-cols-5 gap-2 sm:gap-3">
               {CATS.map((cat) => {
-                const isActive = activeCategory === cat.value && !productQuery;
                 const Icon = cat.Icon;
+                const handleClick = () => {
+                  setProductQuery('');
+                  setShowSuggestions(false);
+                  setActiveCategory(null);
+                  if ('tintSpecial' in cat && cat.tintSpecial)   { setShowTinting(true); return; }
+                  if ('airconSpecial' in cat && cat.airconSpecial) { setShowAirCon(true);  return; }
+                  if ('glassSpecial' in cat && cat.glassSpecial)   { setShowGlass(true);   return; }
+                  if ('otherSpecial' in cat && cat.otherSpecial)   { setShowOther(true);   return; }
+                  if ('soundSpecial' in cat && cat.soundSpecial)   { setShowSound(true);   return; }
+                };
                 return (
                   <button
                     key={cat.value}
-                    onClick={() => {
-                      setProductQuery('');
-                      setShowSuggestions(false);
-                      if (cat.tintSpecial) {
-                        setActiveCategory(null);
-                        setShowTinting(true);
-                        return;
-                      }
-                      if ('airconSpecial' in cat && cat.airconSpecial) {
-                        setActiveCategory(null);
-                        setShowAirCon(true);
-                        return;
-                      }
-                      if ('glassSpecial' in cat && cat.glassSpecial) {
-                        setActiveCategory(null);
-                        setShowGlass(true);
-                        return;
-                      }
-                      if ('otherSpecial' in cat && cat.otherSpecial) {
-                        setActiveCategory(null);
-                        setShowOther(true);
-                        return;
-                      }
-                      if ('soundSpecial' in cat && cat.soundSpecial) {
-                        setActiveCategory(null);
-                        setShowSound(true);
-                        return;
-                      }
-                      setActiveCategory(isActive ? null : cat.value);
-                    }}
-                    className={`flex flex-col items-center justify-center gap-1.5 sm:gap-2 py-3 sm:py-5 rounded-2xl text-xs font-medium transition-all duration-300 active:scale-[0.96] ${
-                      isActive
-                        ? 'bg-[#3B3A36] text-white shadow-[0_4px_20px_rgb(0,0,0,0.15)]'
-                        : 'bg-white text-[#878681] hover:text-[#2D2D2D] shadow-[0_2px_8px_rgb(0,0,0,0.04)] hover:shadow-[0_4px_16px_rgb(0,0,0,0.08)]'
-                    }`}
+                    onClick={handleClick}
+                    className="flex flex-col items-center gap-2.5 py-4 rounded-2xl bg-white shadow-[0_2px_8px_rgb(0,0,0,0.05)] hover:shadow-[0_6px_20px_rgb(0,0,0,0.1)] active:scale-[0.95] transition-all duration-200 group"
                   >
-                    <Icon className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={1.5} />
-                    <span className="text-center leading-tight text-[9px] sm:text-[10px]">{cat.label}</span>
+                    <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center transition-transform duration-200 group-active:scale-90 ${cat.iconBg}`}>
+                      <Icon className={`h-5 w-5 ${cat.iconFg}`} strokeWidth={1.75} />
+                    </div>
+                    <span className="text-center leading-tight text-[9px] sm:text-[10px] font-semibold text-[#4A4845] px-1">
+                      {cat.label}
+                    </span>
                   </button>
                 );
               })}
@@ -485,14 +500,19 @@ export default function POSDashboard() {
             {/* Receipt header */}
             <div className="px-6 pt-6 pb-5">
               <div className="flex items-start justify-between mb-5">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#878681]">Korat Air &amp; Sound</p>
-                  <p className="text-[10px] text-[#C0BEBA] mt-0.5">ใบเสร็จ / Receipt</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-[#3B3A36] flex items-center justify-center shrink-0">
+                    <Car className="h-4 w-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-[#2D2D2D] leading-none tracking-tight">Korat Air &amp; Sound</p>
+                    <p className="text-[10px] text-[#878681] mt-0.5">แอร์ · ฟิล์ม · กระจก · เครื่องเสียง</p>
+                  </div>
                 </div>
                 {items.length > 0 && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <button className="text-xs text-[#C0BEBA] hover:text-rose-400 flex items-center gap-1 transition-colors duration-200">
+                      <button className="text-xs text-[#C0BEBA] hover:text-rose-400 flex items-center gap-1 transition-colors duration-200 shrink-0">
                         <X className="h-3 w-3" />ล้างบิล
                       </button>
                     </AlertDialogTrigger>

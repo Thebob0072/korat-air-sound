@@ -33,7 +33,10 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', 'Noto Sans Thai', system-ui, sans-serif;
+    font-family: 'Sarabun', 'Inter', system-ui, sans-serif;
+  }
+  .font-mono {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
   }
 }
 

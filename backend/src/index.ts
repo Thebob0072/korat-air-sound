@@ -16,6 +16,7 @@ const ALLOWED_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:4173',
   'https://korat-frontend-171089417301.asia-southeast1.run.app',
+  'https://korat-frontend-yovupdn6ma-as.a.run.app',
   'https://audithebob.art',
   ...(process.env.CORS_ORIGIN ? [process.env.CORS_ORIGIN] : []),
 ];
