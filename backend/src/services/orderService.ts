@@ -48,9 +48,10 @@ export async function processPayment(orderId: string) {
     if (order.status === 'Cancelled') throw new AppError(400, 'Cannot pay a cancelled order');
     if (order.orderItems.length === 0) throw new AppError(400, 'Order has no items');
 
-    // 2. Pre-flight stock check for ALL items before touching anything
+    // 2. Pre-flight stock check — skip custom-label items (no product, no stock)
     for (const item of order.orderItems) {
-      const product = await tx.product.findUnique({ where: { id: item.productId ?? undefined } });
+      if (!item.productId) continue;
+      const product = await tx.product.findUnique({ where: { id: item.productId } });
       if (!product) {
         throw new AppError(404, `Product not found: ${item.productId}`);
       }
@@ -63,10 +64,11 @@ export async function processPayment(orderId: string) {
       }
     }
 
-    // 3. Deduct stock atomically
+    // 3. Deduct stock atomically — skip custom-label items
     for (const item of order.orderItems) {
+      if (!item.productId) continue;
       await tx.product.update({
-        where: { id: item.productId ?? undefined },
+        where: { id: item.productId },
         data: { stockQuantity: { decrement: item.quantity } },
       });
     }

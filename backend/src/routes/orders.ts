@@ -69,12 +69,18 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   }
 });
 
-/** PATCH /api/orders/:id/status — set Draft→Quoted or Quoted→Cancelled */
+/** PATCH /api/orders/:id/status — set Draft→Quoted or Draft/Quoted→Cancelled */
 router.patch('/:id/status', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { status } = z
       .object({ status: z.enum(['Draft', 'Quoted', 'Cancelled']) })
       .parse(req.body);
+
+    const existing = await prisma.order.findUnique({ where: { id: req.params.id } });
+    if (!existing) throw new AppError(404, 'Order not found');
+    if (existing.status === 'Paid' || existing.status === 'Cancelled') {
+      throw new AppError(400, `Cannot change status of a ${existing.status} order`);
+    }
 
     const order = await prisma.order.update({
       where: { id: req.params.id },
@@ -134,6 +140,21 @@ router.delete('/:id/items/:itemId', async (req: Request, res: Response, next: Ne
       await tx.order.update({ where: { id: orderId }, data: { totalAmount } });
     });
 
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** DELETE /api/orders/:id — delete a Draft order (irreversible) */
+router.delete('/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const order = await prisma.order.findUnique({ where: { id: req.params.id } });
+    if (!order) throw new AppError(404, 'Order not found');
+    if (order.status !== 'Draft') {
+      throw new AppError(400, `Only Draft orders can be deleted`);
+    }
+    await prisma.order.delete({ where: { id: req.params.id } });
     res.status(204).end();
   } catch (err) {
     next(err);
