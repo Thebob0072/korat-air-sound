@@ -29,10 +29,11 @@ export function DatePicker({
         <button
           disabled={disabled}
           className={cn(
-            'flex h-11 w-full items-center gap-2.5 rounded-2xl bg-[#F0EDE8] px-4 text-sm transition-all duration-200',
-            'hover:bg-[#E5E5E3] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15',
+            'flex h-11 w-full items-center gap-2.5 rounded-2xl px-4 text-sm transition-all duration-200',
+            'focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15',
             'disabled:opacity-40 disabled:cursor-not-allowed',
             value ? 'text-[#2D2D2D]' : 'text-[#878681]',
+            !className && 'bg-[#F0EDE8] hover:bg-[#E5E5E3]',
             className,
           )}
         >

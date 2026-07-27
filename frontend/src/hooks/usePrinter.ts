@@ -26,7 +26,7 @@ function buildPayload(order: Order): PrintReceiptPayload {
     license_plate: order.vehicle?.licensePlate ?? '',
     items: (order.orderItems ?? []).map((item) => ({
       name: item.product?.name ?? '',
-      qty: item.quantity,
+      qty: Number(item.quantity),
       price: Number(item.unitPrice),
     })),
     total: Number(order.totalAmount),

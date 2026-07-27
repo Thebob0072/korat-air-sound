@@ -31,8 +31,22 @@ function makeVehicle(overrides: Partial<Vehicle> = {}): Vehicle {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+const TEST_BILL_ID = 'test-bill-id';
+
 const resetStore = () =>
-  usePOSCartStore.setState({ items: [], vehicle: null, discount: 0 });
+  usePOSCartStore.setState({
+    bills: { [TEST_BILL_ID]: { id: TEST_BILL_ID, label: 'บิล 1', items: [], vehicle: null, discount: 0 } },
+    activeBillId: TEST_BILL_ID,
+  });
+
+/** Returns the active bill (test bill) */
+const getActiveBill = () => {
+  const s = usePOSCartStore.getState();
+  return s.bills[s.activeBillId];
+};
+
+/** Shorthand: items of the active bill */
+const getItems = () => getActiveBill().items;
 
 // ── Test Suite ────────────────────────────────────────────────────────────────
 
@@ -45,7 +59,7 @@ describe('POSCartStore', () => {
     it('adds a new product to an empty cart with qty 1 by default', () => {
       usePOSCartStore.getState().addItem(makeProduct());
 
-      const { items } = usePOSCartStore.getState();
+      const items = getItems();
       expect(items).toHaveLength(1);
       expect(items[0].product.id).toBe('p1');
       expect(items[0].quantity).toBe(1);
@@ -53,8 +67,7 @@ describe('POSCartStore', () => {
 
     it('adds a product with a specified quantity', () => {
       usePOSCartStore.getState().addItem(makeProduct(), 3);
-
-      expect(usePOSCartStore.getState().items[0].quantity).toBe(3);
+      expect(getItems()[0].quantity).toBe(3);
     });
 
     it('increments quantity when the same product is added again', () => {
@@ -62,7 +75,7 @@ describe('POSCartStore', () => {
       addItem(makeProduct());
       addItem(makeProduct(), 2);
 
-      const { items } = usePOSCartStore.getState();
+      const items = getItems();
       expect(items).toHaveLength(1);
       expect(items[0].quantity).toBe(3);
     });
@@ -72,65 +85,81 @@ describe('POSCartStore', () => {
       addItem(makeProduct({ id: 'p1' }));
       addItem(makeProduct({ id: 'p2', sku: 'GL-001' }));
 
-      expect(usePOSCartStore.getState().items).toHaveLength(2);
+      expect(getItems()).toHaveLength(2);
     });
 
     it('is a no-op when quantity is 0', () => {
       usePOSCartStore.getState().addItem(makeProduct(), 0);
-      expect(usePOSCartStore.getState().items).toHaveLength(0);
+      expect(getItems()).toHaveLength(0);
     });
 
     it('is a no-op when quantity is negative', () => {
       usePOSCartStore.getState().addItem(makeProduct(), -5);
-      expect(usePOSCartStore.getState().items).toHaveLength(0);
+      expect(getItems()).toHaveLength(0);
+    });
+
+    it('assigns a unique id to each new line item', () => {
+      const { addItem } = usePOSCartStore.getState();
+      addItem(makeProduct({ id: 'p1' }));
+      addItem(makeProduct({ id: 'p2', sku: 'GL-001' }));
+
+      const ids = getItems().map((i) => i.id);
+      expect(ids[0]).toBeTruthy();
+      expect(ids[1]).toBeTruthy();
+      expect(ids[0]).not.toBe(ids[1]);
     });
   });
 
   // ── removeItem ────────────────────────────────────────────────────────────
 
   describe('removeItem', () => {
-    it('removes the correct product from the cart', () => {
+    it('removes the correct product from the cart by item id', () => {
       const { addItem, removeItem } = usePOSCartStore.getState();
       addItem(makeProduct({ id: 'p1' }));
       addItem(makeProduct({ id: 'p2' }));
 
-      removeItem('p1');
+      // removeItem now takes the item's local UUID, not the product id
+      const itemToRemove = getItems().find((i) => i.product.id === 'p1')!;
+      removeItem(itemToRemove.id);
 
-      const { items } = usePOSCartStore.getState();
+      const items = getItems();
       expect(items).toHaveLength(1);
       expect(items[0].product.id).toBe('p2');
     });
 
-    it('is a no-op when the product is not in the cart', () => {
+    it('is a no-op when the item id does not exist', () => {
       usePOSCartStore.getState().addItem(makeProduct());
       usePOSCartStore.getState().removeItem('does-not-exist');
 
-      expect(usePOSCartStore.getState().items).toHaveLength(1);
+      expect(getItems()).toHaveLength(1);
     });
   });
 
   // ── updateQuantity ────────────────────────────────────────────────────────
 
   describe('updateQuantity', () => {
-    it('updates the quantity of an existing line item', () => {
+    it('updates the quantity of an existing line item by item id', () => {
       usePOSCartStore.getState().addItem(makeProduct());
-      usePOSCartStore.getState().updateQuantity('p1', 7);
+      const itemId = getItems()[0].id;
+      usePOSCartStore.getState().updateQuantity(itemId, 7);
 
-      expect(usePOSCartStore.getState().items[0].quantity).toBe(7);
+      expect(getItems()[0].quantity).toBe(7);
     });
 
     it('removes the item when quantity is set to 0', () => {
       usePOSCartStore.getState().addItem(makeProduct());
-      usePOSCartStore.getState().updateQuantity('p1', 0);
+      const itemId = getItems()[0].id;
+      usePOSCartStore.getState().updateQuantity(itemId, 0);
 
-      expect(usePOSCartStore.getState().items).toHaveLength(0);
+      expect(getItems()).toHaveLength(0);
     });
 
     it('removes the item when quantity is negative', () => {
       usePOSCartStore.getState().addItem(makeProduct());
-      usePOSCartStore.getState().updateQuantity('p1', -3);
+      const itemId = getItems()[0].id;
+      usePOSCartStore.getState().updateQuantity(itemId, -3);
 
-      expect(usePOSCartStore.getState().items).toHaveLength(0);
+      expect(getItems()).toHaveLength(0);
     });
   });
 
@@ -145,10 +174,10 @@ describe('POSCartStore', () => {
 
       clearCart();
 
-      const state = usePOSCartStore.getState();
-      expect(state.items).toHaveLength(0);
-      expect(state.vehicle).toBeNull();
-      expect(state.discount).toBe(0);
+      const bill = getActiveBill();
+      expect(bill.items).toHaveLength(0);
+      expect(bill.vehicle).toBeNull();
+      expect(bill.discount).toBe(0);
     });
   });
 
@@ -157,17 +186,17 @@ describe('POSCartStore', () => {
   describe('setDiscount', () => {
     it('sets a positive discount', () => {
       usePOSCartStore.getState().setDiscount(200);
-      expect(usePOSCartStore.getState().discount).toBe(200);
+      expect(getActiveBill().discount).toBe(200);
     });
 
     it('clamps negative values to 0', () => {
       usePOSCartStore.getState().setDiscount(-100);
-      expect(usePOSCartStore.getState().discount).toBe(0);
+      expect(getActiveBill().discount).toBe(0);
     });
 
     it('allows a discount of 0', () => {
       usePOSCartStore.getState().setDiscount(0);
-      expect(usePOSCartStore.getState().discount).toBe(0);
+      expect(getActiveBill().discount).toBe(0);
     });
   });
 
@@ -252,7 +281,7 @@ describe('POSCartStore', () => {
       const product = makeProduct({ id: 'p1', sku: 'AC-001', sellingPrice: 350 });
       usePOSCartStore.getState().addItem(product, 4);
 
-      const { items } = usePOSCartStore.getState();
+      const items = getItems();
       const payload = items.map((item) => ({
         productId: item.product.id,
         quantity: item.quantity,

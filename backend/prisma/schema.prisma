@@ -31,6 +31,17 @@ model Vehicle {
   @@map("vehicles")
 }
 
+/// ช่างในร้าน — แยกออกมาเป็น entity เพื่อป้องกันการพิมพ์ชื่อผิดและรองรับ commission report
+model Technician {
+  id         String      @id @default(uuid())
+  name       String
+  nickname   String?
+  isActive   Boolean     @default(true) @map("is_active")
+  orderItems OrderItem[]
+
+  @@map("technicians")
+}
+
 model Product {
   id            String          @id @default(uuid())
   sku           String          @unique
@@ -38,12 +49,16 @@ model Product {
   category      ProductCategory
   costPrice     Decimal         @map("cost_price") @db.Decimal(12, 2)
   sellingPrice  Decimal         @map("selling_price") @db.Decimal(12, 2)
-  stockQuantity Int             @default(0) @map("stock_quantity")
+  /// Decimal รองรับการตัดสต็อกฟิล์ม/สายไฟเป็นทศนิยม เช่น 15.5 ตารางฟุต
+  stockQuantity Decimal         @default(0) @map("stock_quantity") @db.Decimal(10, 2)
   supplier      String?         @map("supplier")
   brand         String?         @map("brand")
   productDate   DateTime?       @map("product_date")
   squareFeet    Decimal?        @map("square_feet") @db.Decimal(10, 2)
   modelYear     Int?            @map("model_year")
+  isService     Boolean         @default(false) @map("is_service")
+  /// ระยะเวลารับประกัน default ของสินค้านี้ (เดือน) — ใช้ pre-fill ตอนเปิดงาน
+  warrantyMonths Int?           @map("warranty_months")
   orderItems    OrderItem[]
 
   @@map("products")
@@ -64,16 +79,28 @@ model Order {
 }
 
 model OrderItem {
-  id              String  @id @default(uuid())
-  orderId         String  @map("order_id")
-  productId       String? @map("product_id")
-  customLabel     String? @map("custom_label") @db.VarChar(300)
-  technicianName  String? @map("technician_name") @db.VarChar(300)
-  quantity        Int
-  unitPrice       Decimal @map("unit_price") @db.Decimal(12, 2)
-  subtotalPrice   Decimal @map("subtotal_price") @db.Decimal(12, 2)
-  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product       Product? @relation(fields: [productId], references: [id])
+  id            String      @id @default(uuid())
+  orderId       String      @map("order_id")
+  productId     String?     @map("product_id")
+  customLabel   String?     @map("custom_label") @db.VarChar(300)
+  /// Legacy — เก็บชื่อช่างเป็น free text (ใช้ไปก่อนจนกว่า technicianId จะพร้อม)
+  technicianName String?    @map("technician_name") @db.VarChar(300)
+  /// FK ไปยัง Technician — ใช้แทน technicianName เมื่อ UI พร้อม
+  technicianId  String?     @map("technician_id")
+  /// Decimal รองรับการขาย/ตัดสต็อกเป็นทศนิยม
+  quantity      Decimal     @db.Decimal(10, 2)
+  unitPrice     Decimal     @map("unit_price") @db.Decimal(12, 2)
+  subtotalPrice Decimal     @map("subtotal_price") @db.Decimal(12, 2)
+  /// สเปกทางเทคนิคหน้างาน เช่น ตำแหน่งฟิล์ม, ความเข้ม, ประเภทน้ำยาแอร์
+  metadata      Json?
+  /// ระยะเวลารับประกันของรายการนี้ (เดือน) — override จาก Product.warrantyMonths ได้
+  warrantyMonths Int?       @map("warranty_months")
+  /// วันสิ้นสุดประกัน = createdAt + warrantyMonths — เก็บไว้ query ได้โดยตรง
+  warrantyEndDate DateTime? @map("warranty_end_date")
+
+  order       Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product?   @relation(fields: [productId], references: [id])
+  technician  Technician? @relation(fields: [technicianId], references: [id])
 
   @@map("order_items")
 }
@@ -90,6 +117,9 @@ enum ProductCategory {
 enum OrderStatus {
   Draft
   Quoted
+  InProgress      // กำลังซ่อม/ติดตั้ง
+  WaitingForParts // รออะไหล่/รอกระจก
+  Ready           // รถเสร็จ รอลูกค้ามารับ
   Paid
   Cancelled
 }

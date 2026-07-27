@@ -53,6 +53,26 @@ export const deleteProduct = (id: string) => api.delete(`/products/${id}`);
 
 // ─── Orders ──────────────────────────────────────────────────────────────────
 
+export interface SubmitBillItem {
+  productId?: string;
+  customLabel?: string;
+  quantity: number;
+  unitPrice?: number; // only for customLabel items
+  technicianId?: string | null;
+  technicianName?: string | null;
+  metadata?: Record<string, unknown> | null;
+}
+
+export interface SubmitBillDto {
+  vehicleId: string;
+  items: SubmitBillItem[];
+  discount?: number;
+}
+
+/** Atomic POS bill submission — backend re-fetches all product prices from DB */
+export const submitBill = (dto: SubmitBillDto) =>
+  api.post<Order>('/orders/submit', dto).then((r) => r.data);
+
 export const getOrders = (params?: { status?: string }) =>
   api.get<Order[]>('/orders', { params }).then((r) => r.data);
 

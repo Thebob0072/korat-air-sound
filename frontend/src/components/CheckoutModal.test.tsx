@@ -5,26 +5,22 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { CheckoutModal } from '@/components/CheckoutModal';
 import { usePOSCartStore } from '@/store/POSCartStore';
+import type { BillData } from '@/store/POSCartStore';
 import type { Product, Vehicle } from '@/types';
 import { ProductCategory } from '@/types';
 
 // ── API mocks ──────────────────────────────────────────────────────────────────
 
 vi.mock('@/lib/api', () => ({
-  createOrder: vi.fn(),
-  addOrderItem: vi.fn(),
+  submitBill: vi.fn(),
   processPayment: vi.fn(),
-  updateOrderStatus: vi.fn(),
   getProducts: vi.fn(),
   searchVehicles: vi.fn(),
 }));
 
-// Importing mocked functions so we can set return values per test
 import {
-  createOrder,
-  addOrderItem,
+  submitBill,
   processPayment,
-  updateOrderStatus,
 } from '@/lib/api';
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -52,6 +48,27 @@ function makeVehicle(overrides: Partial<Vehicle> = {}): Vehicle {
     ...overrides,
   };
 }
+
+// ── Store helpers ─────────────────────────────────────────────────────────────
+
+const TEST_BILL_ID = 'test-bill-id';
+
+const resetStore = () =>
+  usePOSCartStore.setState({
+    bills: { [TEST_BILL_ID]: { id: TEST_BILL_ID, label: 'บิล 1', items: [], vehicle: null, discount: 0 } },
+    activeBillId: TEST_BILL_ID,
+  });
+
+const patchBill = (patch: Partial<BillData>) => {
+  const s = usePOSCartStore.getState();
+  const bill = s.bills[s.activeBillId];
+  usePOSCartStore.setState({ bills: { ...s.bills, [s.activeBillId]: { ...bill, ...patch } } });
+};
+
+const getActiveBill = () => {
+  const s = usePOSCartStore.getState();
+  return s.bills[s.activeBillId];
+};
 
 // ── Test helper ────────────────────────────────────────────────────────────────
 
@@ -82,9 +99,7 @@ beforeEach(() => {
 });
 
 describe('CheckoutModal', () => {
-  beforeEach(() => {
-    usePOSCartStore.setState({ items: [], vehicle: null, discount: 0 });
-  });
+  beforeEach(resetStore);
 
   describe('visibility', () => {
     it('renders content when open=true', () => {
@@ -100,11 +115,7 @@ describe('CheckoutModal', () => {
 
   describe('order summary', () => {
     it('displays vehicle license plate and model', () => {
-      usePOSCartStore.setState({
-        vehicle: makeVehicle({ licensePlate: 'ขก 9999 ขอนแก่น', model: 'Civic' }),
-        items: [],
-        discount: 0,
-      });
+      patchBill({ vehicle: makeVehicle({ licensePlate: 'ขก 9999 ขอนแก่น', model: 'Civic' }) });
 
       renderModal();
 
@@ -113,13 +124,11 @@ describe('CheckoutModal', () => {
     });
 
     it('lists each cart item with its name', () => {
-      usePOSCartStore.setState({
+      patchBill({
         items: [
-          { product: makeProduct({ id: 'p1', name: 'ล้างแอร์' }), quantity: 1 },
-          { product: makeProduct({ id: 'p2', name: 'ฟิล์มกรองแสง' }), quantity: 2 },
+          { id: 'item-1', product: makeProduct({ id: 'p1', name: 'ล้างแอร์' }), quantity: 1 },
+          { id: 'item-2', product: makeProduct({ id: 'p2', name: 'ฟิล์มกรองแสง' }), quantity: 2 },
         ],
-        vehicle: null,
-        discount: 0,
       });
 
       renderModal();
@@ -129,12 +138,8 @@ describe('CheckoutModal', () => {
     });
 
     it('shows the correct subtotal amount', () => {
-      usePOSCartStore.setState({
-        items: [
-          { product: makeProduct({ sellingPrice: 500 }), quantity: 2 }, // 1000
-        ],
-        vehicle: null,
-        discount: 0,
+      patchBill({
+        items: [{ id: 'item-1', product: makeProduct({ sellingPrice: 500 }), quantity: 2 }], // 1000
       });
 
       renderModal();
@@ -146,11 +151,7 @@ describe('CheckoutModal', () => {
 
   describe('payment method', () => {
     it('selects cash by default', () => {
-      usePOSCartStore.setState({
-        items: [{ product: makeProduct(), quantity: 1 }],
-        vehicle: null,
-        discount: 0,
-      });
+      patchBill({ items: [{ id: 'item-1', product: makeProduct(), quantity: 1 }] });
 
       renderModal();
 
@@ -159,11 +160,7 @@ describe('CheckoutModal', () => {
     });
 
     it('shows cash received field when cash is selected', () => {
-      usePOSCartStore.setState({
-        items: [{ product: makeProduct(), quantity: 1 }],
-        vehicle: null,
-        discount: 0,
-      });
+      patchBill({ items: [{ id: 'item-1', product: makeProduct(), quantity: 1 }] });
 
       renderModal();
 
@@ -172,11 +169,7 @@ describe('CheckoutModal', () => {
 
     it('hides cash received field when transfer is selected', async () => {
       const user = userEvent.setup();
-      usePOSCartStore.setState({
-        items: [{ product: makeProduct(), quantity: 1 }],
-        vehicle: null,
-        discount: 0,
-      });
+      patchBill({ items: [{ id: 'item-1', product: makeProduct(), quantity: 1 }] });
 
       renderModal();
 
@@ -189,10 +182,9 @@ describe('CheckoutModal', () => {
   describe('cash payment validation', () => {
     it('shows error when cash received is less than total on Pay click', async () => {
       const user = userEvent.setup();
-      usePOSCartStore.setState({
-        items: [{ product: makeProduct({ sellingPrice: 1000 }), quantity: 1 }],
+      patchBill({
+        items: [{ id: 'item-1', product: makeProduct({ sellingPrice: 1000 }), quantity: 1 }],
         vehicle: makeVehicle(),
-        discount: 0,
       });
 
       renderModal();
@@ -209,10 +201,8 @@ describe('CheckoutModal', () => {
 
     it('shows change amount when cash received exceeds total', async () => {
       const user = userEvent.setup();
-      usePOSCartStore.setState({
-        items: [{ product: makeProduct({ sellingPrice: 500 }), quantity: 1 }],
-        vehicle: null,
-        discount: 0,
+      patchBill({
+        items: [{ id: 'item-1', product: makeProduct({ sellingPrice: 500 }), quantity: 1 }],
       });
 
       renderModal();
@@ -230,10 +220,9 @@ describe('CheckoutModal', () => {
   describe('discount validation', () => {
     it('shows error when discount exceeds subtotal on submit', async () => {
       const user = userEvent.setup();
-      usePOSCartStore.setState({
-        items: [{ product: makeProduct({ sellingPrice: 200 }), quantity: 1 }],
+      patchBill({
+        items: [{ id: 'item-1', product: makeProduct({ sellingPrice: 200 }), quantity: 1 }],
         vehicle: makeVehicle(),
-        discount: 0,
       });
 
       renderModal();
@@ -251,47 +240,42 @@ describe('CheckoutModal', () => {
   });
 
   describe('successful checkout', () => {
-    it('calls createOrder then addOrderItem then processPayment for Pay', async () => {
+    it('calls submitBill then processPayment for Pay', async () => {
       const user = userEvent.setup();
       const mockOrder = { id: 'order-123', orderNumber: 'KAS-20240315-0001' };
 
-      vi.mocked(createOrder).mockResolvedValue(mockOrder as ReturnType<typeof createOrder> extends Promise<infer T> ? T : never);
-      vi.mocked(addOrderItem).mockResolvedValue({} as never);
+      vi.mocked(submitBill).mockResolvedValue(mockOrder as never);
       vi.mocked(processPayment).mockResolvedValue({} as never);
 
-      usePOSCartStore.setState({
-        items: [{ product: makeProduct({ sellingPrice: 600 }), quantity: 1 }],
+      patchBill({
+        items: [{ id: 'item-1', product: makeProduct({ sellingPrice: 600 }), quantity: 1 }],
         vehicle: makeVehicle(),
-        discount: 0,
       });
 
       renderModal();
 
-      // Fill in cash received equal to total (600)
       const cashInput = screen.getByLabelText(/รับเงินมา/);
       await user.type(cashInput, '600');
 
       await user.click(screen.getByRole('button', { name: /ยืนยันชำระเงิน/i }));
 
       await waitFor(() => {
-        expect(createOrder).toHaveBeenCalledWith('v1');
-        expect(addOrderItem).toHaveBeenCalledTimes(1);
+        expect(submitBill).toHaveBeenCalledWith(
+          expect.objectContaining({ vehicleId: 'v1' }),
+        );
         expect(processPayment).toHaveBeenCalledWith('order-123');
       });
     });
 
-    it('calls updateOrderStatus with Quoted for Quote button', async () => {
+    it('calls submitBill but NOT processPayment for Quote button', async () => {
       const user = userEvent.setup();
       const mockOrder = { id: 'order-456' };
 
-      vi.mocked(createOrder).mockResolvedValue(mockOrder as never);
-      vi.mocked(addOrderItem).mockResolvedValue({} as never);
-      vi.mocked(updateOrderStatus).mockResolvedValue({} as never);
+      vi.mocked(submitBill).mockResolvedValue(mockOrder as never);
 
-      usePOSCartStore.setState({
-        items: [{ product: makeProduct({ sellingPrice: 300 }), quantity: 1 }],
+      patchBill({
+        items: [{ id: 'item-1', product: makeProduct({ sellingPrice: 300 }), quantity: 1 }],
         vehicle: makeVehicle(),
-        discount: 0,
       });
 
       renderModal();
@@ -299,20 +283,20 @@ describe('CheckoutModal', () => {
       await user.click(screen.getByRole('button', { name: /ออกใบเสนอราคา/i }));
 
       await waitFor(() => {
-        expect(updateOrderStatus).toHaveBeenCalledWith('order-456', 'Quoted');
+        expect(submitBill).toHaveBeenCalledWith(
+          expect.objectContaining({ vehicleId: 'v1' }),
+        );
+        expect(processPayment).not.toHaveBeenCalled();
       });
     });
 
     it('clears the cart on successful checkout', async () => {
       const user = userEvent.setup();
-      vi.mocked(createOrder).mockResolvedValue({ id: 'order-789' } as never);
-      vi.mocked(addOrderItem).mockResolvedValue({} as never);
-      vi.mocked(updateOrderStatus).mockResolvedValue({} as never);
+      vi.mocked(submitBill).mockResolvedValue({ id: 'order-789' } as never);
 
-      usePOSCartStore.setState({
-        items: [{ product: makeProduct(), quantity: 1 }],
+      patchBill({
+        items: [{ id: 'item-1', product: makeProduct(), quantity: 1 }],
         vehicle: makeVehicle(),
-        discount: 0,
       });
 
       renderModal();
@@ -320,7 +304,7 @@ describe('CheckoutModal', () => {
       await user.click(screen.getByRole('button', { name: /ออกใบเสนอราคา/i }));
 
       await waitFor(() => {
-        expect(usePOSCartStore.getState().items).toHaveLength(0);
+        expect(getActiveBill().items).toHaveLength(0);
       });
     });
   });
@@ -328,12 +312,11 @@ describe('CheckoutModal', () => {
   describe('error state', () => {
     it('displays API error message when mutation fails', async () => {
       const user = userEvent.setup();
-      vi.mocked(createOrder).mockRejectedValue(new Error('ของหมดสต็อก'));
+      vi.mocked(submitBill).mockRejectedValue(new Error('ของหมดสต็อก'));
 
-      usePOSCartStore.setState({
-        items: [{ product: makeProduct(), quantity: 1 }],
+      patchBill({
+        items: [{ id: 'item-1', product: makeProduct(), quantity: 1 }],
         vehicle: makeVehicle(),
-        discount: 0,
       });
 
       renderModal();
@@ -348,14 +331,13 @@ describe('CheckoutModal', () => {
     });
 
     it('blocks close button while mutation is pending', async () => {
-      vi.mocked(createOrder).mockImplementation(
+      vi.mocked(submitBill).mockImplementation(
         () => new Promise(() => { /* intentionally never resolves */ }),
       );
 
-      usePOSCartStore.setState({
-        items: [{ product: makeProduct({ sellingPrice: 100 }), quantity: 1 }],
+      patchBill({
+        items: [{ id: 'item-1', product: makeProduct({ sellingPrice: 100 }), quantity: 1 }],
         vehicle: makeVehicle(),
-        discount: 0,
       });
 
       renderModal();
@@ -377,11 +359,7 @@ describe('CheckoutModal', () => {
   describe('close behaviour', () => {
     it('resets the form when closed and reopened', async () => {
       const user = userEvent.setup();
-      usePOSCartStore.setState({
-        items: [{ product: makeProduct(), quantity: 1 }],
-        vehicle: null,
-        discount: 0,
-      });
+      patchBill({ items: [{ id: 'item-1', product: makeProduct(), quantity: 1 }] });
 
       const { onClose } = renderModal();
 

@@ -30,6 +30,7 @@ export function AirConModal({ open, onClose }: AirConModalProps) {
   const [newCost, setNewCost] = useState('');
   const [newSell, setNewSell] = useState('');
   const [newStock, setNewStock] = useState('1');
+  const [newIsService, setNewIsService] = useState(false);
   const [createError, setCreateError] = useState('');
 
   const { data: products = [], isPending } = useQuery<Product[]>({
@@ -70,6 +71,7 @@ export function AirConModal({ open, onClose }: AirConModalProps) {
     setNewCost('');
     setNewSell('');
     setNewStock('1');
+    setNewIsService(false);
     setCreateError('');
   };
 
@@ -96,7 +98,8 @@ export function AirConModal({ open, onClose }: AirConModalProps) {
       category: ProductCategory.AirCon,
       costPrice: parseFloat(newCost) || 0,
       sellingPrice: sell,
-      stockQuantity: parseInt(newStock) || 1,
+      stockQuantity: newIsService ? 0 : (parseInt(newStock) || 1),
+      isService: newIsService,
     });
   };
 
@@ -158,7 +161,7 @@ export function AirConModal({ open, onClose }: AirConModalProps) {
                   <div className="py-8 text-center text-sm text-[#878681]">กำลังโหลด…</div>
                 ) : filtered.length > 0 ? (
                   filtered.map((product) => {
-                    const outOfStock = product.stockQuantity <= 0;
+                    const outOfStock = Number(product.stockQuantity) <= 0;
                     return (
                       <button
                         key={product.id}
@@ -273,13 +276,34 @@ export function AirConModal({ open, onClose }: AirConModalProps) {
                   </div>
                 </div>
 
-                {/* สต็อก */}
-                <div>
-                  <label htmlFor="ac-stock" className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">จำนวนสต็อก</label>
-                  <input id="ac-stock" type="number" inputMode="numeric" min="0" value={newStock}
-                    onChange={(e) => setNewStock(e.target.value)}
-                    className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-4 py-2.5 text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all" />
+                {/* รายการบริการ toggle */}
+                <div className="flex items-center justify-between bg-[#F7F5F2] rounded-2xl px-4 py-3">
+                  <div>
+                    <p className="text-sm font-semibold text-[#2D2D2D]">รายการบริการ</p>
+                    <p className="text-xs text-[#878681]">ไม่หัก stock เช่น โปรล้างแอร์</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setNewIsService((v) => !v)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
+                      newIsService ? 'bg-emerald-500' : 'bg-[#D8D5D0]'
+                    }`}
+                  >
+                    <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                      newIsService ? 'translate-x-5' : 'translate-x-0'
+                    }`} />
+                  </button>
                 </div>
+
+                {/* สต็อก (숨ew when isService) */}
+                {!newIsService && (
+                  <div>
+                    <label htmlFor="ac-stock" className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">จำนวนสต็อก</label>
+                    <input id="ac-stock" type="number" inputMode="numeric" min="0" value={newStock}
+                      onChange={(e) => setNewStock(e.target.value)}
+                      className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-4 py-2.5 text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all" />
+                  </div>
+                )}
               </div>
 
               <div className="px-6 pb-6 flex gap-3">

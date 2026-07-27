@@ -34,6 +34,9 @@ import type { Order, Product, OrderStatus } from '@/types';
 const STATUS_LABELS: Record<OrderStatus, string> = {
   Draft: 'แบบร่าง',
   Quoted: 'ใบเสนอราคา',
+  InProgress: 'กำลังซ่อม',
+  WaitingForParts: 'รออะไหล่',
+  Ready: 'รอส่งมอบ',
   Paid: 'ชำระแล้ว',
   Cancelled: 'ยกเลิก',
 };
@@ -43,6 +46,9 @@ type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline' | 'succe
 const STATUS_BADGE: Record<OrderStatus, BadgeVariant> = {
   Draft: 'secondary',
   Quoted: 'warning',
+  InProgress: 'default',
+  WaitingForParts: 'warning',
+  Ready: 'success',
   Paid: 'success',
   Cancelled: 'destructive',
 };
@@ -558,7 +564,7 @@ function AddItemModal({ products, isPending, onAdd, onClose }: AddItemModalProps
             <div className="space-y-1">
               {filtered.map((product) => {
                 const isSelected = selected?.id === product.id;
-                const lowStock = product.stockQuantity <= 3;
+                const lowStock = Number(product.stockQuantity) <= 3;
                 return (
                   <button
                     key={product.id}
@@ -636,7 +642,7 @@ function AddItemModal({ products, isPending, onAdd, onClose }: AddItemModalProps
                 <span className="w-10 text-center font-bold text-[#2D2D2D] text-sm tabular-nums">{qty}</span>
                 <button
                   className="h-8 w-8 rounded-full bg-white shadow-sm flex items-center justify-center text-[#2D2D2D] hover:bg-[#E8E4DF] transition-all text-base font-medium"
-                  onClick={() => setQty((q) => Math.min(selected.stockQuantity, q + 1))}
+                  onClick={() => setQty((q) => Math.min(Number(selected.stockQuantity), q + 1))}
                 >+</button>
               </div>
 

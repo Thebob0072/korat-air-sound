@@ -11,10 +11,8 @@ import { X, CreditCard, FileText, Loader2, AlertCircle, Banknote, Smartphone, Qr
 import QRCode from 'react-qr-code';
 import generatePayload from 'promptpay-qr';
 import {
-  createOrder,
-  addOrderItem,
+  submitBill,
   processPayment,
-  updateOrderStatus,
 } from '@/lib/api';
 import { usePOSCartStore } from '@/store/POSCartStore';
 import { cn, formatCurrency } from '@/lib/utils';
@@ -49,11 +47,11 @@ export function CheckoutModal({ open, onClose }: CheckoutModalProps) {
   const queryClient = useQueryClient();
 
   // Read cart from Zustand
-  const items = usePOSCartStore((s) => s.items);
-  const vehicle = usePOSCartStore((s) => s.vehicle);
+  const items = usePOSCartStore((s) => s.bills[s.activeBillId]?.items ?? []);
+  const vehicle = usePOSCartStore((s) => s.bills[s.activeBillId]?.vehicle ?? null);
+  const storeDiscount = usePOSCartStore((s) => s.bills[s.activeBillId]?.discount ?? 0);
   const getSubtotal = usePOSCartStore((s) => s.getSubtotal);
   const setDiscount = usePOSCartStore((s) => s.setDiscount);
-  const storeDiscount = usePOSCartStore((s) => s.discount);
   const clearCart = usePOSCartStore((s) => s.clearCart);
 
   const {
@@ -85,39 +83,37 @@ export function CheckoutModal({ open, onClose }: CheckoutModalProps) {
   // ── Mutation ────────────────────────────────────────────────────────────────
 
   const commitMutation = useMutation({
-    mutationFn: async ({ markAsPaid }: { markAsPaid: boolean }) => {
+    mutationFn: async ({ markAsPaid, discount }: { markAsPaid: boolean; discount: number }) => {
       if (!vehicle) throw new Error('ไม่พบข้อมูลรถ กรุณาค้นหาอีกครั้ง');
       if (items.length === 0) throw new Error('ไม่มีรายการในบิล');
 
-      const order = await createOrder(vehicle.id);
       // UUID pattern — real DB products; anything else is a synthetic custom item
       const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      try {
-        for (const item of items) {
+
+      // Single atomic call — backend re-fetches all prices from DB
+      const order = await submitBill({
+        vehicleId: vehicle.id,
+        discount,
+        items: items.map((item) => {
           const isRealProduct = UUID_RE.test(item.product.id);
-          await addOrderItem(order.id, {
+          return {
             productId: isRealProduct ? item.product.id : undefined,
             customLabel: isRealProduct ? undefined : item.product.name,
-            technicianName: item.technicianName,
+            // unitPrice only for custom-label items (no DB product to re-fetch)
+            unitPrice: isRealProduct ? undefined : Number(item.product.sellingPrice),
             quantity: item.quantity,
-            unitPrice: Number(item.product.sellingPrice),
-          });
-        }
-        if (markAsPaid) {
-          await processPayment(order.id);
-        } else {
-          await updateOrderStatus(order.id, 'Quoted');
-        }
-        return order.id;
-      } catch (err) {
-        // Attempt to cancel the partially-created order so it does not appear as orphaned Draft
-        try {
-          await updateOrderStatus(order.id, 'Cancelled');
-        } catch {
-          // Silently ignore — the primary error will be surfaced to the user
-        }
-        throw err;
+            technicianName: item.technicianName,
+            metadata: item.meta ? (item.meta as unknown as Record<string, unknown>) : undefined,
+          };
+        }),
+      });
+
+      // submitBill creates as Quoted; processPayment additionally deducts stock + marks Paid
+      if (markAsPaid) {
+        await processPayment(order.id);
       }
+
+      return order.id;
     },
     onSuccess: (orderId) => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -152,7 +148,7 @@ export function CheckoutModal({ open, onClose }: CheckoutModalProps) {
       }
 
       setDiscount(discount);
-      commitMutation.mutate({ markAsPaid });
+      commitMutation.mutate({ markAsPaid, discount });
     })();
 
   const handleClose = () => {
@@ -215,7 +211,7 @@ export function CheckoutModal({ open, onClose }: CheckoutModalProps) {
               </div>
               <div className="space-y-2.5">
                 {items.map((item) => (
-                  <div key={item.product.id} className="flex items-baseline gap-2">
+                  <div key={item.id} className="flex items-baseline gap-2">
                     <span className="flex-1 text-sm font-medium text-[#2D2D2D] leading-snug">
                       {item.product.name}
                     </span>

@@ -38,6 +38,7 @@ export function GlassModal({ open, onClose }: GlassModalProps) {
   const [showPosDrop, setShowPosDrop] = useState(false);
   const [carModel, setCarModel] = useState('');
   const [carYear, setCarYear] = useState('');
+  const [variant, setVariant] = useState('');
   const [price, setPrice] = useState('');
   const [error, setError] = useState('');
   const posDropRef = useRef<HTMLDivElement>(null);
@@ -63,6 +64,7 @@ export function GlassModal({ open, onClose }: GlassModalProps) {
     setShowPosDrop(false);
     setCarModel('');
     setCarYear('');
+    setVariant('');
     setPrice('');
     setError('');
   };
@@ -77,7 +79,8 @@ export function GlassModal({ open, onClose }: GlassModalProps) {
     setError('');
 
     const yearPart = carYear ? ` ปี${carYear}` : '';
-    const label = `${position} — ${carModel.trim()}${yearPart}`;
+    const variantPart = variant.trim() ? ` (${variant.trim()})` : '';
+    const label = `${position} — ${carModel.trim()}${yearPart}${variantPart}`;
 
     addItem({
       id: `GL_${Date.now()}`,
@@ -171,6 +174,23 @@ export function GlassModal({ open, onClose }: GlassModalProps) {
               </div>
             </div>
 
+            {/* ลักษณะพิเศษ */}
+            <div>
+              <label htmlFor="glass-variant" className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">
+                ลักษณะพิเศษ
+                <span className="ml-1.5 text-xs font-normal text-[#878681]">(ไม่บังคับ)</span>
+              </label>
+              <input
+                id="glass-variant"
+                type="text"
+                value={variant}
+                onChange={(e) => setVariant(e.target.value)}
+                placeholder="เช่น มีเซ็นเซอร์ฝน, OEM, ตลาด, ขนาดใหญ่"
+                className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-4 py-2.5 text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all"
+                autoComplete="off"
+              />
+            </div>
+
             {/* ราคา */}
             <div>
               <label htmlFor="glass-price" className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">
@@ -187,7 +207,7 @@ export function GlassModal({ open, onClose }: GlassModalProps) {
             {position && carModel.trim() && priceNum > 0 && (
               <div className="bg-[#F0EDE8] rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
                 <span className="text-sm text-[#2D2D2D] truncate">
-                  {position} — {carModel.trim()}{carYear ? ` ปี${carYear}` : ''}
+                  {position} — {carModel.trim()}{carYear ? ` ปี${carYear}` : ''}{variant.trim() ? ` (${variant.trim()})` : ''}
                 </span>
                 <span className="text-base font-bold text-[#3B3A36] shrink-0">{formatCurrency(priceNum)}</span>
               </div>

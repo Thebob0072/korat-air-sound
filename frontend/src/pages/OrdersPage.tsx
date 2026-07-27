@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Loader2, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Pagination } from '@/components/ui/pagination';
+import { Pagination, PageSizeSelector } from '@/components/ui/pagination';
 import { usePagination } from '@/hooks/usePagination';
 import { getOrders } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -14,6 +14,9 @@ import type { OrderStatus } from '@/types';
 const STATUS_LABELS: Record<OrderStatus, string> = {
   Draft: 'แบบร่าง',
   Quoted: 'ใบเสนอราคา',
+  InProgress: 'กำลังซ่อม',
+  WaitingForParts: 'รออะไหล่',
+  Ready: 'รอส่งมอบ',
   Paid: 'ชำระแล้ว',
   Cancelled: 'ยกเลิก',
 };
@@ -23,6 +26,9 @@ type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline' | 'succe
 const STATUS_BADGE: Record<OrderStatus, BadgeVariant> = {
   Draft: 'secondary',
   Quoted: 'warning',
+  InProgress: 'default',
+  WaitingForParts: 'warning',
+  Ready: 'success',
   Paid: 'success',
   Cancelled: 'destructive',
 };
@@ -55,19 +61,20 @@ export default function OrdersPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex items-center gap-3">
+        <div className="h-7 w-1.5 bg-[#3B3A36] rounded-full shrink-0" />
         <h1 className="text-xl font-bold text-[#2D2D2D]">รายการออเดอร์</h1>
       </div>
 
       {/* Toolbar */}
-      <div className="flex items-center gap-3 flex-wrap">
-        {/* Status pills */}
-        <div className="flex gap-1.5 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+        {/* Filter pills — scrollable, no wrap */}
+        <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-1 sm:min-w-0 pb-0.5">
           {FILTERS.map((f) => (
             <button
               key={f.value}
               onClick={() => setFilter(f.value)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 shrink-0 ${
                 filter === f.value
                   ? 'bg-[#3B3A36] text-white shadow-sm'
                   : 'bg-white text-[#878681] hover:text-[#2D2D2D] hover:bg-[#F0EDE8]'
@@ -77,14 +84,27 @@ export default function OrdersPage() {
             </button>
           ))}
         </div>
-
-        {/* Date filter */}
-        <div className="w-full sm:ml-auto sm:w-48">
-          <DatePicker
-            value={dateFilter}
-            onChange={setDateFilter}
-            placeholder="กรองตามวันที่"
-          />
+        {/* Controls */}
+        <div className="flex items-center gap-2 shrink-0">
+          {!isPending && !isError && (
+            <p className="text-sm text-[#878681]">
+              <span className="font-semibold text-[#2D2D2D]">{total}</span> ออเดอร์
+              {dateFilter && <span className="ml-1.5 text-xs bg-[#F0EDE8] px-2 py-0.5 rounded-full">กรองตามวันที่</span>}
+            </p>
+          )}
+          <div className="w-36 sm:w-40 shrink-0">
+            <DatePicker
+              value={dateFilter}
+              onChange={setDateFilter}
+              placeholder="กรองตามวันที่"
+              className={
+                dateFilter
+                  ? 'bg-white border-2 border-[#3B3A36] text-[#2D2D2D] shadow-sm'
+                  : 'bg-white border border-[#D8D5D0] hover:border-[#3B3A36]/40'
+              }
+            />
+          </div>
+          <PageSizeSelector pageSize={pageSize} onPageSizeChange={setPageSize} />
         </div>
       </div>
 
@@ -98,14 +118,14 @@ export default function OrdersPage() {
         <div className="bg-white rounded-[20px] border border-[#E5E5E3] overflow-hidden shadow-[0_2px_12px_rgb(0,0,0,0.04)]">
           <div className="overflow-x-auto">
           <table className="w-full min-w-[680px] text-sm">
-            <thead>
+            <thead className="bg-[#FAF9F7]">
               <tr className="border-b border-[#E5E5E3]">
-                <th className="text-left px-5 py-3.5 text-xs font-semibold text-[#878681] uppercase tracking-wide">เลขที่ออเดอร์</th>
-                <th className="text-left px-5 py-3.5 text-xs font-semibold text-[#878681] uppercase tracking-wide">ทะเบียนรถ</th>
-                <th className="text-left px-5 py-3.5 text-xs font-semibold text-[#878681] uppercase tracking-wide">ลูกค้า</th>
-                <th className="text-left px-5 py-3.5 text-xs font-semibold text-[#878681] uppercase tracking-wide">วันที่เปิดงาน</th>
-                <th className="text-right px-5 py-3.5 text-xs font-semibold text-[#878681] uppercase tracking-wide">ยอดรวม</th>
-                <th className="text-center px-5 py-3.5 text-xs font-semibold text-[#878681] uppercase tracking-wide">สถานะ</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9894]">เลขที่ออเดอร์</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9894]">ทะเบียนรถ</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9894]">ลูกค้า</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9894]">วันที่เปิดงาน</th>
+                <th className="text-right px-5 py-3 text-[11px] font-semibold text-[#9B9894]">ยอดรวม</th>
+                <th className="text-center px-5 py-3 text-[11px] font-semibold text-[#9B9894]">สถานะ</th>
               </tr>
             </thead>
             <tbody>

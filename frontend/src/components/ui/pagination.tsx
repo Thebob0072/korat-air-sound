@@ -1,5 +1,36 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { PAGE_SIZES, type PageSize } from '@/hooks/usePagination';
+
+// ── Shared size selector (rendered above the table card by each page) ─────────
+
+interface PageSizeSelectorProps {
+  pageSize: PageSize;
+  onPageSizeChange: (s: PageSize) => void;
+}
+
+export function PageSizeSelector({ pageSize, onPageSizeChange }: PageSizeSelectorProps) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-xs text-[#878681]">แสดง</span>
+      <div className="relative">
+        <select
+          value={pageSize}
+          onChange={(e) => onPageSizeChange(Number(e.target.value) as PageSize)}
+          className="appearance-none bg-white border border-[#E5E5E3] rounded-xl pl-3 pr-6 h-8 text-xs font-semibold text-[#2D2D2D] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 cursor-pointer shadow-sm"
+        >
+          {PAGE_SIZES.map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
+        <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-[#878681] pointer-events-none" />
+      </div>
+      <span className="text-xs text-[#878681]">รายการ</span>
+    </div>
+  );
+}
+
+// ── Page navigation (rendered inside the table card, bottom) ──────────────────
 
 interface PaginationProps {
   total: number;
@@ -7,7 +38,7 @@ interface PaginationProps {
   pageSize: PageSize;
   totalPages: number;
   onPageChange: (p: number) => void;
-  onPageSizeChange: (s: PageSize) => void;
+  onPageSizeChange?: (s: PageSize) => void;
 }
 
 function pageNumbers(current: number, total: number): (number | '…')[] {
@@ -28,82 +59,70 @@ export function Pagination({
   pageSize,
   totalPages,
   onPageChange,
-  onPageSizeChange,
 }: PaginationProps) {
   if (total === 0) return null;
 
   const from = (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, total);
-  const showPageNav = totalPages > 1;
+
+  const [jumpVal, setJumpVal] = useState('');
+
+  const handleJump = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return;
+    const n = parseInt(jumpVal, 10);
+    if (!isNaN(n) && n >= 1 && n <= totalPages) onPageChange(n);
+    setJumpVal('');
+  };
 
   return (
-    <div className="flex items-center justify-between flex-wrap gap-3 px-1 mt-4">
-      {/* Left: page-size selector + count info */}
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-1 bg-[#F0EDE8] rounded-2xl p-1">
-          {PAGE_SIZES.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => onPageSizeChange(s)}
-              className={`min-w-[2.25rem] px-2.5 h-7 rounded-xl text-xs font-semibold transition-all duration-150 ${
-                pageSize === s
-                  ? 'bg-white text-[#2D2D2D] shadow-sm'
-                  : 'text-[#878681] hover:text-[#2D2D2D]'
-              }`}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-        <span className="text-xs text-[#878681]">
-          {from}–{to} จาก {total} รายการ
-        </span>
+    <div className="flex items-center mt-3 px-1">
+
+      {/* Center — page numbers + jump (only when multipage) */}
+      <div className="flex-1 flex items-center justify-center gap-1 flex-wrap">
+        {totalPages > 1 && (
+          <>
+            {pageNumbers(page, totalPages).map((n, i) =>
+              n === '…' ? (
+                <span key={`e-${i}`} className="h-8 w-5 flex items-center justify-center text-xs text-[#C0BEBA]">…</span>
+              ) : (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => onPageChange(n)}
+                  className={`h-8 min-w-[2rem] px-2 rounded-xl text-xs font-semibold transition-all duration-150 ${
+                    page === n
+                      ? 'bg-[#3B3A36] text-white shadow-sm'
+                      : 'text-[#878681] hover:text-[#2D2D2D] hover:bg-[#F0EDE8]'
+                  }`}
+                >
+                  {n}
+                </button>
+              ),
+            )}
+
+            {/* Jump to page */}
+            <div className="flex items-center gap-1 ml-1 border-l border-[#E5E5E3] pl-2">
+              <span className="text-xs text-[#C0BEBA]">ไปหน้า</span>
+              <input
+                type="number"
+                min={1}
+                max={totalPages}
+                value={jumpVal}
+                onChange={(e) => setJumpVal(e.target.value)}
+                onKeyDown={handleJump}
+                placeholder="…"
+                className="w-10 h-8 text-center text-xs rounded-xl bg-[#F0EDE8] text-[#2D2D2D] font-mono placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Right: page navigation — hidden when everything fits */}
-      {showPageNav && (
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => onPageChange(page - 1)}
-            disabled={page === 1}
-            className="h-8 w-8 flex items-center justify-center rounded-xl text-[#878681] hover:text-[#2D2D2D] hover:bg-[#F0EDE8] disabled:opacity-30 disabled:pointer-events-none transition-all"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
+      {/* Right — count */}
+      <span className="text-xs text-[#878681] shrink-0 tabular-nums">
+        {from}–{to} จาก {total} รายการ
+      </span>
 
-          {pageNumbers(page, totalPages).map((n, i) =>
-            n === '…' ? (
-              <span key={`ellipsis-${i}`} className="h-8 w-6 flex items-center justify-center text-xs text-[#C0BEBA]">
-                …
-              </span>
-            ) : (
-              <button
-                key={n}
-                type="button"
-                onClick={() => onPageChange(n)}
-                className={`h-8 min-w-[2rem] px-2 rounded-xl text-xs font-semibold transition-all duration-150 ${
-                  page === n
-                    ? 'bg-[#3B3A36] text-white shadow-sm'
-                    : 'text-[#878681] hover:text-[#2D2D2D] hover:bg-[#F0EDE8]'
-                }`}
-              >
-                {n}
-              </button>
-            ),
-          )}
-
-          <button
-            type="button"
-            onClick={() => onPageChange(page + 1)}
-            disabled={page === totalPages}
-            className="h-8 w-8 flex items-center justify-center rounded-xl text-[#878681] hover:text-[#2D2D2D] hover:bg-[#F0EDE8] disabled:opacity-30 disabled:pointer-events-none transition-all"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
-      )}
     </div>
   );
 }

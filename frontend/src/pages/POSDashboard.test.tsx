@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import POSDashboard from '@/pages/POSDashboard';
 import { usePOSCartStore } from '@/store/POSCartStore';
+import type { BillData } from '@/store/POSCartStore';
 import type { Product, Vehicle } from '@/types';
 import { ProductCategory } from '@/types';
 
@@ -50,6 +51,27 @@ function makeVehicle(overrides: Partial<Vehicle> = {}): Vehicle {
   };
 }
 
+// ── Store helpers ─────────────────────────────────────────────────────────────
+
+const TEST_BILL_ID = 'test-bill-id';
+
+const resetStore = () =>
+  usePOSCartStore.setState({
+    bills: { [TEST_BILL_ID]: { id: TEST_BILL_ID, label: 'บิล 1', items: [], vehicle: null, discount: 0 } },
+    activeBillId: TEST_BILL_ID,
+  });
+
+const patchBill = (patch: Partial<BillData>) => {
+  const s = usePOSCartStore.getState();
+  const bill = s.bills[s.activeBillId];
+  usePOSCartStore.setState({ bills: { ...s.bills, [s.activeBillId]: { ...bill, ...patch } } });
+};
+
+const getActiveBill = () => {
+  const s = usePOSCartStore.getState();
+  return s.bills[s.activeBillId];
+};
+
 // ── Test helper ────────────────────────────────────────────────────────────────
 
 function renderDashboard() {
@@ -73,7 +95,7 @@ function renderDashboard() {
 
 describe('POSDashboard', () => {
   beforeEach(() => {
-    usePOSCartStore.setState({ items: [], vehicle: null, discount: 0 });
+    resetStore();
     vi.mocked(getProducts).mockResolvedValue([]);
     vi.mocked(searchVehicles).mockResolvedValue([]);
   });
@@ -143,7 +165,7 @@ describe('POSDashboard', () => {
       expect(screen.getByText('ฟิล์มกรองแสง')).toBeInTheDocument();
       expect(screen.getByText('กระจกรถยนต์')).toBeInTheDocument();
       expect(screen.getByText('เครื่องเสียง')).toBeInTheDocument();
-      expect(screen.getByText('อื่นๆ')).toBeInTheDocument();
+      expect(screen.getByText(/อื่นๆ/)).toBeInTheDocument();
     });
 
     it('does not show กุญแจรีโมท button', async () => {
@@ -174,10 +196,10 @@ describe('POSDashboard', () => {
 
       await user.click(screen.getByText('น้ำยาแอร์ R134a'));
 
-      const { items } = usePOSCartStore.getState();
-      expect(items).toHaveLength(1);
-      expect(items[0].product.id).toBe('p-ac1');
-      expect(items[0].quantity).toBe(1);
+      const bill = getActiveBill();
+      expect(bill.items).toHaveLength(1);
+      expect(bill.items[0].product.id).toBe('p-ac1');
+      expect(bill.items[0].quantity).toBe(1);
     });
 
     it('does not add an out-of-stock product', async () => {
@@ -193,17 +215,13 @@ describe('POSDashboard', () => {
 
       await user.click(screen.getByText('สินค้าหมด'));
 
-      expect(usePOSCartStore.getState().items).toHaveLength(0);
+      expect(getActiveBill().items).toHaveLength(0);
     });
   });
 
   describe('bill panel', () => {
     it('shows a vehicle banner when a vehicle is set in the store', () => {
-      usePOSCartStore.setState({
-        vehicle: makeVehicle({ licensePlate: 'กก 5555' }),
-        items: [],
-        discount: 0,
-      });
+      patchBill({ vehicle: makeVehicle({ licensePlate: 'กก 5555' }) });
 
       renderDashboard();
 
@@ -212,10 +230,8 @@ describe('POSDashboard', () => {
     });
 
     it('shows the correct item count and total in the bill footer', () => {
-      usePOSCartStore.setState({
-        vehicle: null,
-        items: [{ product: makeProduct({ sellingPrice: 1000 }), quantity: 3 }],
-        discount: 0,
+      patchBill({
+        items: [{ id: 'item-1', product: makeProduct({ sellingPrice: 1000 }), quantity: 3 }],
       });
 
       renderDashboard();
@@ -226,8 +242,6 @@ describe('POSDashboard', () => {
     });
 
     it('disables Pay and Quote buttons when cart is empty', () => {
-      usePOSCartStore.setState({ items: [], vehicle: null, discount: 0 });
-
       renderDashboard();
 
       expect(screen.getByText('ชำระเงิน').closest('button')).toBeDisabled();
@@ -236,10 +250,9 @@ describe('POSDashboard', () => {
 
     it('opens the CheckoutModal when Pay is clicked with items + vehicle', async () => {
       const user = userEvent.setup();
-      usePOSCartStore.setState({
+      patchBill({
         vehicle: makeVehicle(),
-        items: [{ product: makeProduct({ sellingPrice: 500 }), quantity: 1 }],
-        discount: 0,
+        items: [{ id: 'item-1', product: makeProduct({ sellingPrice: 500 }), quantity: 1 }],
       });
 
       renderDashboard();
@@ -254,11 +267,7 @@ describe('POSDashboard', () => {
 
   describe('clear bill', () => {
     it('shows clear-bill button when cart has items', () => {
-      usePOSCartStore.setState({
-        vehicle: null,
-        items: [{ product: makeProduct(), quantity: 1 }],
-        discount: 0,
-      });
+      patchBill({ items: [{ id: 'item-1', product: makeProduct(), quantity: 1 }] });
 
       renderDashboard();
 
@@ -267,11 +276,7 @@ describe('POSDashboard', () => {
 
     it('shows confirmation dialog when clear-bill is clicked', async () => {
       const user = userEvent.setup();
-      usePOSCartStore.setState({
-        vehicle: null,
-        items: [{ product: makeProduct(), quantity: 1 }],
-        discount: 0,
-      });
+      patchBill({ items: [{ id: 'item-1', product: makeProduct(), quantity: 1 }] });
 
       renderDashboard();
 
@@ -284,11 +289,7 @@ describe('POSDashboard', () => {
 
     it('clears the cart store when confirmed', async () => {
       const user = userEvent.setup();
-      usePOSCartStore.setState({
-        vehicle: null,
-        items: [{ product: makeProduct(), quantity: 1 }],
-        discount: 0,
-      });
+      patchBill({ items: [{ id: 'item-1', product: makeProduct(), quantity: 1 }] });
 
       renderDashboard();
 
@@ -300,7 +301,7 @@ describe('POSDashboard', () => {
       await user.click(confirmBtn);
 
       await waitFor(() => {
-        expect(usePOSCartStore.getState().items).toHaveLength(0);
+        expect(getActiveBill().items).toHaveLength(0);
       });
     });
   });

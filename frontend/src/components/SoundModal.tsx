@@ -169,7 +169,7 @@ export function SoundModal({ open, onClose }: SoundModalProps) {
                   <div className="py-8 text-center text-sm text-[#878681]">กำลังโหลด…</div>
                 ) : filtered.length > 0 ? (
                   filtered.map((product) => {
-                    const outOfStock = product.stockQuantity <= 0;
+                    const outOfStock = Number(product.stockQuantity) <= 0;
                     return (
                       <button
                         key={product.id}
