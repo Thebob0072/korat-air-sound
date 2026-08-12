@@ -1,17 +1,21 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { useState } from 'react';
-import { X, Wrench } from 'lucide-react';
+import { X, Wrench, Car } from 'lucide-react';
 import { usePOSCartStore } from '@/store/POSCartStore';
 import { formatCurrency } from '@/lib/utils';
 import { ProductCategory } from '@/types';
+import { FormInput } from '@/components/ui/FormInput';
 
 interface OtherItemModalProps {
   open: boolean;
   onClose: () => void;
+  vehicleBrand?: string | null;
+  vehicleModel?: string | null;
 }
 
-export function OtherItemModal({ open, onClose }: OtherItemModalProps) {
+export function OtherItemModal({ open, onClose, vehicleBrand, vehicleModel }: OtherItemModalProps) {
   const addItem = usePOSCartStore((s) => s.addItem);
+  const vehicleDisplay = [vehicleBrand, vehicleModel].filter(Boolean).join(' ');
 
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
@@ -76,7 +80,14 @@ export function OtherItemModal({ open, onClose }: OtherItemModalProps) {
                 <Dialog.Title className="text-base font-bold text-[#2D2D2D] leading-none">
                   เพิ่มรายการอื่นๆ
                 </Dialog.Title>
-                <p id="other-desc" className="text-xs text-[#878681] mt-0.5">ระบุชื่อรายการและราคา</p>
+                <p id="other-desc" className="text-xs text-[#878681] mt-0.5 flex items-center gap-1.5">
+                  ระบุชื่อรายการและราคา
+                  {vehicleDisplay && (
+                    <span className="inline-flex items-center gap-1 bg-[#E8E4DF] text-[#5C6B62] text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                      <Car className="h-3 w-3" />{vehicleDisplay}
+                    </span>
+                  )}
+                </p>
               </div>
             </div>
             <Dialog.Close
@@ -96,42 +107,32 @@ export function OtherItemModal({ open, onClose }: OtherItemModalProps) {
               </div>
             )}
 
-            {/* ชื่อรายการ */}
-            <div>
-              <label htmlFor="other-name" className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">
-                ชื่อรายการ *
-              </label>
-              <input
-                id="other-name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && document.getElementById('other-price')?.focus()}
-                placeholder="เช่น ค่าแรง, ค่าน้ำยา, อื่นๆ…"
-                className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-4 py-2.5 text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all"
-                autoFocus
-                autoComplete="off"
-              />
-            </div>
+            <FormInput
+              id="other-name"
+              label="ชื่อรายการ"
+              required
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && document.getElementById('other-price')?.focus()}
+              placeholder="เช่น ค่าแรง, ค่าน้ำยา, อื่นๆ…"
+              autoFocus
+              autoComplete="off"
+            />
 
-            {/* ราคา */}
-            <div>
-              <label htmlFor="other-price" className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">
-                ราคา (บาท) *
-              </label>
-              <input
-                id="other-price"
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="1"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-                placeholder="0"
-                className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-4 py-2.5 text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all"
-              />
-            </div>
+            <FormInput
+              id="other-price"
+              label="ราคา (บาท)"
+              required
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="1"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+              placeholder="0"
+            />
 
             {/* Preview */}
             {name.trim() && priceNum > 0 && (
@@ -143,8 +144,7 @@ export function OtherItemModal({ open, onClose }: OtherItemModalProps) {
           </div>
 
           {/* Footer */}
-          <div className="px-6 pb-6 flex gap-3">
-{/* Technician name */}
+          <div className="px-6 pb-6 space-y-2">
             <div className="flex items-center gap-2 bg-[#F7F5F2] rounded-2xl px-3 py-2">
               <Wrench className="h-3.5 w-3.5 text-[#C0BEBA] shrink-0" />
               <input
@@ -155,21 +155,23 @@ export function OtherItemModal({ open, onClose }: OtherItemModalProps) {
                 className="flex-1 bg-transparent text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none"
               />
             </div>
-            <button
-              type="button"
-              onClick={handleClose}
-              className="flex-1 py-3 rounded-2xl text-sm font-semibold text-[#878681] bg-[#F0EDE8] hover:bg-[#EAE7E2] transition-all"
-            >
-              ยกเลิก
-            </button>
-            <button
-              type="button"
-              onClick={handleAdd}
-              disabled={!name.trim() || priceNum <= 0}
-              className="flex-1 py-3 rounded-2xl text-sm font-bold text-white bg-[#3B3A36] hover:bg-[#2D2D2D] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {priceNum > 0 ? `เพิ่มในบิล ${formatCurrency(priceNum)}` : 'เพิ่มในบิล'}
-            </button>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={handleClose}
+                className="flex-1 py-3 rounded-2xl text-sm font-semibold text-[#878681] bg-[#F0EDE8] hover:bg-[#EAE7E2] transition-all"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={handleAdd}
+                disabled={!name.trim() || priceNum <= 0}
+                className="flex-1 py-3 rounded-2xl text-sm font-bold text-white bg-[#3B3A36] hover:bg-[#2D2D2D] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {priceNum > 0 ? `เพิ่มในบิล ${formatCurrency(priceNum)}` : 'เพิ่มในบิล'}
+              </button>
+            </div>
           </div>
         </Dialog.Content>
       </Dialog.Portal>

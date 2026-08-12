@@ -17,3 +17,6 @@ npm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Internal docs (ห้าม push ขึ้น GitHub)
+readme/

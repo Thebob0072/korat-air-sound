@@ -61,9 +61,9 @@ export default function OrdersPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="h-7 w-1.5 bg-[#3B3A36] rounded-full shrink-0" />
-        <h1 className="text-xl font-bold text-[#2D2D2D]">รายการออเดอร์</h1>
+      <div>
+        <h1 className="text-2xl font-bold text-[#1A1917] tracking-tight">ออเดอร์</h1>
+        <p className="text-sm text-[#878681] mt-0.5">ประวัติงานและสถานะออเดอร์ทั้งหมด</p>
       </div>
 
       {/* Toolbar */}
@@ -120,12 +120,12 @@ export default function OrdersPage() {
           <table className="w-full min-w-[680px] text-sm">
             <thead className="bg-[#FAF9F7]">
               <tr className="border-b border-[#E5E5E3]">
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9894]">เลขที่ออเดอร์</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9894]">ทะเบียนรถ</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9894]">ลูกค้า</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9894]">วันที่เปิดงาน</th>
-                <th className="text-right px-5 py-3 text-[11px] font-semibold text-[#9B9894]">ยอดรวม</th>
-                <th className="text-center px-5 py-3 text-[11px] font-semibold text-[#9B9894]">สถานะ</th>
+                <th className="text-left px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">เลขที่ออเดอร์</th>
+                <th className="text-left px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">ทะเบียนรถ</th>
+                <th className="text-left px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">ลูกค้า</th>
+                <th className="text-left px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">วันที่เปิดงาน</th>
+                <th className="text-right px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">ยอดรวม</th>
+                <th className="text-center px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">สถานะ</th>
               </tr>
             </thead>
             <tbody>
@@ -142,8 +142,12 @@ export default function OrdersPage() {
                     {order.vehicle?.licensePlate}
                   </td>
                   <td className="px-5 py-4">
-                    <div className="font-medium text-[#2D2D2D]">{order.vehicle?.customer?.name}</div>
-                    <div className="text-xs text-[#878681] mt-0.5">{order.vehicle?.customer?.phone}</div>
+                    <div className="font-medium text-[#2D2D2D]">
+                      {order.vehicle?.customer?.name ?? order.vehicle?.customer?.phone ?? <span className="text-[#C0BEBA] text-xs">—</span>}
+                    </div>
+                    {order.vehicle?.customer?.name && order.vehicle?.customer?.phone && (
+                      <div className="text-xs text-[#878681] mt-0.5 font-mono">{order.vehicle.customer.phone}</div>
+                    )}
                   </td>
                   <td className="px-5 py-4 text-[#878681]">{formatDate(order.createdAt)}</td>
                   <td className="px-5 py-4 text-right font-semibold font-mono text-[#2D2D2D]">

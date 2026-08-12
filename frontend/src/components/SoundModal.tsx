@@ -1,25 +1,29 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { useState, useMemo } from 'react';
-import { X, Volume2, Search, Plus, ArrowLeft, RefreshCw, Wrench } from 'lucide-react';
+import { X, Volume2, Search, Plus, ArrowLeft, RefreshCw, Wrench, Car } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePOSCartStore } from '@/store/POSCartStore';
 import { getProducts, createProduct } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { ProductCategory } from '@/types';
 import type { Product } from '@/types';
+import { FormInput } from '@/components/ui/FormInput';
 
 interface SoundModalProps {
   open: boolean;
   onClose: () => void;
+  vehicleBrand?: string | null;
+  vehicleModel?: string | null;
 }
 
 function genSKU() {
   return `SND-${String(Date.now()).slice(-5)}`;
 }
 
-export function SoundModal({ open, onClose }: SoundModalProps) {
+export function SoundModal({ open, onClose, vehicleBrand, vehicleModel }: SoundModalProps) {
   const addItem = usePOSCartStore((s) => s.addItem);
   const queryClient = useQueryClient();
+  const vehicleDisplay = [vehicleBrand, vehicleModel].filter(Boolean).join(' ');
 
   const [search, setSearch] = useState('');
   const [mode, setMode] = useState<'list' | 'create'>('list');
@@ -135,8 +139,13 @@ export function SoundModal({ open, onClose }: SoundModalProps) {
                 <Dialog.Title className="text-base font-bold text-[#2D2D2D] leading-none">
                   {mode === 'create' ? 'สร้างสินค้าใหม่' : 'เพิ่มสินค้าเครื่องเสียง'}
                 </Dialog.Title>
-                <p id="sound-desc" className="text-xs text-[#878681] mt-0.5">
+                <p id="sound-desc" className="text-xs text-[#878681] mt-0.5 flex items-center gap-1.5">
                   {mode === 'create' ? 'กรอกข้อมูลสินค้าและเพิ่มในบิล' : 'เลือกสินค้าหรือสร้างใหม่'}
+                  {vehicleDisplay && (
+                    <span className="inline-flex items-center gap-1 bg-[#E8E4DF] text-[#5C6B62] text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                      <Car className="h-3 w-3" />{vehicleDisplay}
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
@@ -259,60 +268,76 @@ export function SoundModal({ open, onClose }: SoundModalProps) {
                 </div>
 
                 {/* ชื่อสินค้า */}
-                <div>
-                  <label htmlFor="snd-name" className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">ชื่อสินค้า *</label>
-                  <input id="snd-name" type="text" value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    placeholder="เช่น JBL Stadium 600F"
-                    className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-4 py-2.5 text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all"
-                    autoFocus
-                    autoComplete="off" />
-                </div>
+                <FormInput
+                  id="snd-name"
+                  label="ชื่อสินค้า"
+                  required
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="เช่น JBL Stadium 600F"
+                  autoFocus
+                  autoComplete="off"
+                />
 
                 {/* ยี่ห้อ + ปีรุ่น */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label htmlFor="snd-brand" className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">ยี่ห้อ</label>
-                    <input id="snd-brand" type="text" value={newBrand}
-                      onChange={(e) => setNewBrand(e.target.value)}
-                      placeholder="เช่น JBL, Pioneer"
-                      className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-4 py-2.5 text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all" />
-                  </div>
-                  <div>
-                    <label htmlFor="snd-year" className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">ปีรุ่น</label>
-                    <input id="snd-year" type="number" inputMode="numeric" min="1900" max="2100"
-                      value={newModelYear}
-                      onChange={(e) => setNewModelYear(e.target.value)}
-                      placeholder="เช่น 2024"
-                      className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-4 py-2.5 text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all" />
-                  </div>
+                  <FormInput
+                    id="snd-brand"
+                    label="ยี่ห้อ"
+                    type="text"
+                    value={newBrand}
+                    onChange={(e) => setNewBrand(e.target.value)}
+                    placeholder="เช่น JBL, Pioneer"
+                  />
+                  <FormInput
+                    id="snd-year"
+                    label="ปีรุ่น"
+                    type="number"
+                    inputMode="numeric"
+                    min="1900"
+                    max="2100"
+                    value={newModelYear}
+                    onChange={(e) => setNewModelYear(e.target.value)}
+                    placeholder="เช่น 2024"
+                  />
                 </div>
 
                 {/* ราคาทุน + ราคาขาย */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label htmlFor="snd-cost" className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">ราคาทุน (บาท)</label>
-                    <input id="snd-cost" type="number" inputMode="decimal" min="0" value={newCost}
-                      onChange={(e) => setNewCost(e.target.value)}
-                      placeholder="0"
-                      className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-4 py-2.5 text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all" />
-                  </div>
-                  <div>
-                    <label htmlFor="snd-sell" className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">ราคาขาย (บาท) *</label>
-                    <input id="snd-sell" type="number" inputMode="decimal" min="0" value={newSell}
-                      onChange={(e) => setNewSell(e.target.value)}
-                      placeholder="0"
-                      className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-4 py-2.5 text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all" />
-                  </div>
+                  <FormInput
+                    id="snd-cost"
+                    label="ราคาทุน (บาท)"
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    value={newCost}
+                    onChange={(e) => setNewCost(e.target.value)}
+                    placeholder="0"
+                  />
+                  <FormInput
+                    id="snd-sell"
+                    label="ราคาขาย (บาท)"
+                    required
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    value={newSell}
+                    onChange={(e) => setNewSell(e.target.value)}
+                    placeholder="0"
+                  />
                 </div>
 
                 {/* สต็อก */}
-                <div>
-                  <label htmlFor="snd-stock" className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">จำนวนสต็อก</label>
-                  <input id="snd-stock" type="number" inputMode="numeric" min="0" value={newStock}
-                    onChange={(e) => setNewStock(e.target.value)}
-                    className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-4 py-2.5 text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all" />
-                </div>
+                <FormInput
+                  id="snd-stock"
+                  label="จำนวนสต็อก"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  value={newStock}
+                  onChange={(e) => setNewStock(e.target.value)}
+                />
               </div>
 
               <div className="px-6 pb-6 flex gap-3">

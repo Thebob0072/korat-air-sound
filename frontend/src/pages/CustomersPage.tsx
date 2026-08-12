@@ -90,16 +90,16 @@ export default function CustomersPage() {
     setExpanded((prev) => (prev === id ? null : id));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="h-7 w-1.5 bg-[#3B3A36] rounded-full shrink-0" />
-        <h1 className="text-xl font-bold text-[#2D2D2D]">รายชื่อลูกค้า</h1>
+      <div>
+        <h1 className="text-2xl font-bold text-[#1A1917] tracking-tight">ลูกค้า</h1>
+        <p className="text-sm text-[#878681] mt-0.5">ข้อมูลลูกค้าและประวัติการใช้บริการ</p>
       </div>
 
       {/* Toolbar: search + count + size */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-2 flex-1 min-w-[220px]">
+        <div className="flex items-center gap-2 w-full max-w-md">
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#878681] pointer-events-none" />
             <input
@@ -108,12 +108,12 @@ export default function CustomersPage() {
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               placeholder="ค้นหาชื่อหรือเบอร์โทร..."
-              className="w-full h-10 pl-10 pr-3 text-sm bg-white rounded-xl border border-[#E5E5E3] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all placeholder:text-[#C0BEBA]"
+              className="w-full h-11 pl-10 pr-3 text-sm font-medium text-[#2D2D2D] bg-white rounded-xl border border-[#E5E5E3] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all placeholder:text-[#C0BEBA] placeholder:font-normal"
             />
           </div>
           <button
             onClick={handleSearch}
-            className="h-10 px-4 bg-[#3B3A36] hover:opacity-90 text-white text-sm font-medium rounded-xl transition-all shrink-0"
+            className="h-11 px-5 bg-[#3B3A36] hover:opacity-90 text-white text-sm font-semibold rounded-xl transition-all shrink-0"
           >
             ค้นหา
           </button>
@@ -143,12 +143,12 @@ export default function CustomersPage() {
             <table className="w-full min-w-[620px] text-sm">
               <thead className="bg-[#FAF9F7]">
                 <tr className="border-b border-[#E5E5E3]">
-                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9894]">ชื่อลูกค้า</th>
-                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9894]">เบอร์โทร</th>
-                  <th className="text-center px-4 py-3 text-[11px] font-semibold text-[#9B9894]">รถ</th>
-                  <th className="text-center px-4 py-3 text-[11px] font-semibold text-[#9B9894]">ออเดอร์</th>
-                  <th className="text-right px-5 py-3 text-[11px] font-semibold text-[#9B9894]">ยอดรวม</th>
-                  <th className="text-right px-5 py-3 text-[11px] font-semibold text-[#9B9894]">ล่าสุด</th>
+                  <th className="text-left px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">ลูกค้า</th>
+                  <th className="text-left px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">เบอร์โทร</th>
+                  <th className="text-center px-4 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">รถ</th>
+                  <th className="text-center px-4 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">งาน</th>
+                  <th className="text-right px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">ยอดรวม</th>
+                  <th className="text-right px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">ล่าสุด</th>
                 </tr>
               </thead>
               <tbody>
@@ -165,14 +165,20 @@ export default function CustomersPage() {
                           <div className="h-8 w-8 rounded-xl bg-[#F0EDE8] flex items-center justify-center shrink-0">
                             <UserRound className="h-4 w-4 text-[#878681]" />
                           </div>
-                          <span className="font-medium text-[#2D2D2D]">{c.name}</span>
+                          <span className="font-medium text-[#2D2D2D]">
+                            {c.name ?? <span className="text-[#C0BEBA] text-xs italic">ไม่มีชื่อ</span>}
+                          </span>
                         </div>
                       </td>
                       <td className="px-5 py-4">
-                        <div className="flex items-center gap-1.5 text-[#878681]">
-                          <Phone className="h-3.5 w-3.5 shrink-0" />
-                          <span className="font-mono text-sm">{c.phone}</span>
-                        </div>
+                        {c.phone ? (
+                          <div className="flex items-center gap-1.5 text-[#878681]">
+                            <Phone className="h-3.5 w-3.5 shrink-0" />
+                            <span className="font-mono text-sm">{c.phone}</span>
+                          </div>
+                        ) : (
+                          <span className="text-[#C0BEBA] text-xs">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-4 text-center">
                         <span className="inline-flex items-center gap-1 text-sm text-[#2D2D2D]">

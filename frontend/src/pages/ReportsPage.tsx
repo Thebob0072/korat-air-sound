@@ -228,9 +228,9 @@ export default function ReportsPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="h-7 w-1.5 bg-[#3B3A36] rounded-full shrink-0" />
-        <h1 className="text-xl font-bold text-[#2D2D2D]">สรุปยอดขาย</h1>
+      <div>
+        <h1 className="text-2xl font-bold text-[#1A1917] tracking-tight">สรุปยอดขาย</h1>
+        <p className="text-sm text-[#878681] mt-0.5">ภาพรวมรายได้และสถิติออเดอร์</p>
       </div>
 
       {/* KPI */}

@@ -10,8 +10,8 @@ datasource db {
 
 model Customer {
   id        String    @id @default(uuid())
-  name      String
-  phone     String    @unique
+  name      String?
+  phone     String?   @unique
   createdAt DateTime  @default(now()) @map("created_at")
   vehicles  Vehicle[]
 
@@ -19,13 +19,13 @@ model Customer {
 }
 
 model Vehicle {
-  id           String   @id @default(uuid())
-  licensePlate String   @unique @map("license_plate")
-  brand        String
-  model        String
-  customerId   String   @map("customer_id")
+  id           String    @id @default(uuid())
+  licensePlate String    @unique @map("license_plate")
+  brand        String?
+  model        String?
+  customerId   String?   @map("customer_id")
   orders       Order[]
-  customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer     Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
   @@index([licensePlate])
   @@map("vehicles")

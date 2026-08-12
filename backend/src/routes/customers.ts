@@ -6,9 +6,9 @@ import { AppError } from '../middleware/errorHandler';
 const router = Router();
 
 const CreateCustomerSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  phone: z.string().min(1, 'Phone is required'),
-});
+  name: z.string().min(1).optional(),
+  phone: z.string().min(1).optional(),
+}).refine((d) => d.name || d.phone, { message: 'ต้องระบุชื่อหรือเบอร์อย่างน้อยหนึ่งอย่าง' });
 
 /** GET /api/customers — paginated list with optional search and order stats */
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
@@ -113,8 +113,10 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = CreateCustomerSchema.parse(req.body);
-    const existing = await prisma.customer.findUnique({ where: { phone: data.phone } });
-    if (existing) throw new AppError(409, `Phone ${data.phone} is already registered`);
+    if (data.phone) {
+      const existing = await prisma.customer.findUnique({ where: { phone: data.phone } });
+      if (existing) throw new AppError(409, `เบอร์ ${data.phone} มีในระบบแล้ว`);
+    }
     const customer = await prisma.customer.create({ data });
     res.status(201).json(customer);
   } catch (err) {

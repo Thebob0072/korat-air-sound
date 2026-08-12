@@ -1,25 +1,29 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { useState, useMemo } from 'react';
-import { X, Wind, Search, Plus, ArrowLeft, RefreshCw, Wrench } from 'lucide-react';
+import { X, Wind, Search, Plus, ArrowLeft, RefreshCw, Wrench, Car } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePOSCartStore } from '@/store/POSCartStore';
 import { getProducts, createProduct } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { ProductCategory } from '@/types';
 import type { Product } from '@/types';
+import { FormInput } from '@/components/ui/FormInput';
 
 interface AirConModalProps {
   open: boolean;
   onClose: () => void;
+  vehicleBrand?: string | null;
+  vehicleModel?: string | null;
 }
 
 function genSKU() {
   return `AC-${String(Date.now()).slice(-5)}`;
 }
 
-export function AirConModal({ open, onClose }: AirConModalProps) {
+export function AirConModal({ open, onClose, vehicleBrand, vehicleModel }: AirConModalProps) {
   const addItem = usePOSCartStore((s) => s.addItem);
   const queryClient = useQueryClient();
+  const vehicleDisplay = [vehicleBrand, vehicleModel].filter(Boolean).join(' ');
 
   const [search, setSearch] = useState('');
   const [mode, setMode] = useState<'list' | 'create'>('list');
@@ -127,8 +131,13 @@ export function AirConModal({ open, onClose }: AirConModalProps) {
                 <Dialog.Title className="text-base font-bold text-[#2D2D2D] leading-none">
                   {mode === 'create' ? 'สร้างสินค้าใหม่' : 'เพิ่มงานระบบแอร์'}
                 </Dialog.Title>
-                <p id="aircon-desc" className="text-xs text-[#878681] mt-0.5">
+                <p id="aircon-desc" className="text-xs text-[#878681] mt-0.5 flex items-center gap-1.5">
                   {mode === 'create' ? 'กรอกข้อมูลสินค้าและเพิ่มในบิล' : 'เลือกสินค้าหรือสร้างใหม่'}
+                  {vehicleDisplay && (
+                    <span className="inline-flex items-center gap-1 bg-[#E8E4DF] text-[#5C6B62] text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                      <Car className="h-3 w-3" />{vehicleDisplay}
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
@@ -248,32 +257,41 @@ export function AirConModal({ open, onClose }: AirConModalProps) {
                 </div>
 
                 {/* ชื่อสินค้า */}
-                <div>
-                  <label htmlFor="ac-name" className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">ชื่อสินค้า *</label>
-                  <input id="ac-name" type="text" value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    placeholder="เช่น น้ำยาแอร์ R134a 400g"
-                    className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-4 py-2.5 text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all"
-                    autoFocus
-                    autoComplete="off" />
-                </div>
+                <FormInput
+                  id="ac-name"
+                  label="ชื่อสินค้า"
+                  required
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="เช่น น้ำยาแอร์ R134a 400g"
+                  autoFocus
+                  autoComplete="off"
+                />
 
                 {/* ราคาทุน + ราคาขาย */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label htmlFor="ac-cost" className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">ราคาทุน (บาท)</label>
-                    <input id="ac-cost" type="number" inputMode="decimal" min="0" value={newCost}
-                      onChange={(e) => setNewCost(e.target.value)}
-                      placeholder="0"
-                      className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-4 py-2.5 text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all" />
-                  </div>
-                  <div>
-                    <label htmlFor="ac-sell" className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">ราคาขาย (บาท) *</label>
-                    <input id="ac-sell" type="number" inputMode="decimal" min="0" value={newSell}
-                      onChange={(e) => setNewSell(e.target.value)}
-                      placeholder="0"
-                      className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-4 py-2.5 text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all" />
-                  </div>
+                  <FormInput
+                    id="ac-cost"
+                    label="ราคาทุน (บาท)"
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    value={newCost}
+                    onChange={(e) => setNewCost(e.target.value)}
+                    placeholder="0"
+                  />
+                  <FormInput
+                    id="ac-sell"
+                    label="ราคาขาย (บาท)"
+                    required
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    value={newSell}
+                    onChange={(e) => setNewSell(e.target.value)}
+                    placeholder="0"
+                  />
                 </div>
 
                 {/* รายการบริการ toggle */}
@@ -295,14 +313,17 @@ export function AirConModal({ open, onClose }: AirConModalProps) {
                   </button>
                 </div>
 
-                {/* สต็อก (숨ew when isService) */}
+                {/* สต็อก (hidden when isService) */}
                 {!newIsService && (
-                  <div>
-                    <label htmlFor="ac-stock" className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">จำนวนสต็อก</label>
-                    <input id="ac-stock" type="number" inputMode="numeric" min="0" value={newStock}
-                      onChange={(e) => setNewStock(e.target.value)}
-                      className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-4 py-2.5 text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all" />
-                  </div>
+                  <FormInput
+                    id="ac-stock"
+                    label="จำนวนสต็อก"
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    value={newStock}
+                    onChange={(e) => setNewStock(e.target.value)}
+                  />
                 )}
               </div>
 

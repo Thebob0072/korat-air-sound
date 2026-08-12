@@ -1,13 +1,16 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { useState, useRef, useEffect } from 'react';
-import { X, ChevronDown, Square as GlassIcon, Wrench } from 'lucide-react';
+import { X, ChevronDown, Square as GlassIcon, Wrench, Car } from 'lucide-react';
 import { usePOSCartStore } from '@/store/POSCartStore';
 import { formatCurrency } from '@/lib/utils';
 import { ProductCategory } from '@/types';
+import { FormInput } from '@/components/ui/FormInput';
 
 interface GlassModalProps {
   open: boolean;
   onClose: () => void;
+  vehicleBrand?: string | null;
+  vehicleModel?: string | null;
 }
 
 const GLASS_POSITIONS = [
@@ -30,8 +33,10 @@ const GLASS_PRICES: Record<GlassPosition, number> = {
   'กระจกท้าย': 1800,
 };
 
-export function GlassModal({ open, onClose }: GlassModalProps) {
+export function GlassModal({ open, onClose, vehicleBrand, vehicleModel }: GlassModalProps) {
   const addItem = usePOSCartStore((s) => s.addItem);
+
+  const vehicleDisplay = [vehicleBrand, vehicleModel].filter(Boolean).join(' ');
 
   const [technicianName, setTechnicianName] = useState('');
   const [position, setPosition] = useState<GlassPosition | ''>('');
@@ -42,6 +47,13 @@ export function GlassModal({ open, onClose }: GlassModalProps) {
   const [price, setPrice] = useState('');
   const [error, setError] = useState('');
   const posDropRef = useRef<HTMLDivElement>(null);
+
+  // pre-fill carModel from selected vehicle when modal opens
+  useEffect(() => {
+    if (open && vehicleDisplay) {
+      setCarModel(vehicleDisplay);
+    }
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // close dropdown on outside click
   useEffect(() => {
@@ -133,7 +145,7 @@ export function GlassModal({ open, onClose }: GlassModalProps) {
 
             {/* ตำแหน่งกระจก */}
             <div>
-              <label className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">ตำแหน่งกระจก *</label>
+              <label className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">ตำแหน่งกระจก <span className="text-[#C0BEBA]">*</span></label>
               <div className="relative" ref={posDropRef}>
                 <button type="button" onClick={() => setShowPosDrop((v) => !v)}
                   className="w-full bg-[#F0EDE8] rounded-2xl px-4 py-2.5 text-sm flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all">
@@ -155,38 +167,45 @@ export function GlassModal({ open, onClose }: GlassModalProps) {
               </div>
             </div>
 
-            {/* รุ่นรถ + ปีรถ */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label htmlFor="glass-model" className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">รุ่นรถ *</label>
-                <input id="glass-model" type="text" value={carModel}
-                  onChange={(e) => setCarModel(e.target.value)}
-                  placeholder="เช่น Toyota Fortuner"
-                  className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-4 py-2.5 text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all"
-                  autoComplete="off" />
-              </div>
-              <div>
-                <label htmlFor="glass-year" className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">ปีรถ</label>
-                <input id="glass-year" type="number" inputMode="numeric" value={carYear}
-                  onChange={(e) => setCarYear(e.target.value)}
-                  placeholder="เช่น 2022"
-                  className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-4 py-2.5 text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all" />
-              </div>
+            {/* รุ่นรถ */}
+            <div>
+              <label htmlFor="glass-model" className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">
+                รุ่นรถ <span className="text-[#C0BEBA]">*</span>
+                {vehicleDisplay && (
+                  <span className="ml-2 inline-flex items-center gap-1 bg-[#E8E4DF] text-[#5C6B62] text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                    <Car className="h-3 w-3" />ดึงจากบิล
+                  </span>
+                )}
+              </label>
+              <FormInput
+                id="glass-model"
+                type="text"
+                value={carModel}
+                onChange={(e) => setCarModel(e.target.value)}
+                placeholder="เช่น Toyota Fortuner"
+                autoComplete="off"
+              />
             </div>
 
-            {/* ลักษณะพิเศษ */}
-            <div>
-              <label htmlFor="glass-variant" className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">
-                ลักษณะพิเศษ
-                <span className="ml-1.5 text-xs font-normal text-[#878681]">(ไม่บังคับ)</span>
-              </label>
-              <input
+            {/* ปีรถ + ลักษณะพิเศษ */}
+            <div className="grid grid-cols-2 gap-3">
+              <FormInput
+                id="glass-year"
+                label="ปีรถ"
+                type="number"
+                inputMode="numeric"
+                value={carYear}
+                onChange={(e) => setCarYear(e.target.value)}
+                placeholder="เช่น 2022"
+              />
+              <FormInput
                 id="glass-variant"
+                label="ลักษณะพิเศษ"
+                hint="(ไม่บังคับ)"
                 type="text"
                 value={variant}
                 onChange={(e) => setVariant(e.target.value)}
-                placeholder="เช่น มีเซ็นเซอร์ฝน, OEM, ตลาด, ขนาดใหญ่"
-                className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-4 py-2.5 text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all"
+                placeholder="เช่น มีเซ็นเซอร์"
                 autoComplete="off"
               />
             </div>
@@ -194,13 +213,18 @@ export function GlassModal({ open, onClose }: GlassModalProps) {
             {/* ราคา */}
             <div>
               <label htmlFor="glass-price" className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">
-                ราคา (บาท) *
+                ราคา (บาท) <span className="text-[#C0BEBA]">*</span>
                 {position && <span className="ml-2 text-xs font-normal text-[#5C6B62]">แนะนำ {formatCurrency(GLASS_PRICES[position])}</span>}
               </label>
-              <input id="glass-price" type="number" inputMode="decimal" min="0" value={price}
+              <FormInput
+                id="glass-price"
+                type="number"
+                inputMode="decimal"
+                min="0"
+                value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 placeholder="0"
-                className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-4 py-2.5 text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all" />
+              />
             </div>
 
             {/* Preview */}
@@ -215,8 +239,7 @@ export function GlassModal({ open, onClose }: GlassModalProps) {
           </div>
 
           {/* Footer */}
-          <div className="px-6 pb-6 flex flex-col gap-3">
-            {/* Technician name */}
+          <div className="px-6 pb-6 space-y-2">
             <div className="flex items-center gap-2 bg-[#F7F5F2] rounded-2xl px-3 py-2">
               <Wrench className="h-3.5 w-3.5 text-[#C0BEBA] shrink-0" />
               <input
@@ -228,15 +251,15 @@ export function GlassModal({ open, onClose }: GlassModalProps) {
               />
             </div>
             <div className="flex gap-3">
-            <button type="button" onClick={handleClose}
-              className="flex-1 py-3 rounded-2xl text-sm font-semibold text-[#878681] bg-[#F0EDE8] hover:bg-[#EAE7E2] transition-all">
-              ยกเลิก
-            </button>
-            <button type="button" onClick={handleAdd}
-              disabled={!position || !carModel.trim() || priceNum <= 0}
-              className="flex-1 py-3 rounded-2xl text-sm font-bold text-white bg-[#3B3A36] hover:bg-[#2D2D2D] transition-all disabled:opacity-40 disabled:cursor-not-allowed">
-              {priceNum > 0 ? `เพิ่มในบิล ${formatCurrency(priceNum)}` : 'เพิ่มในบิล'}
-            </button>
+              <button type="button" onClick={handleClose}
+                className="flex-1 py-3 rounded-2xl text-sm font-semibold text-[#878681] bg-[#F0EDE8] hover:bg-[#EAE7E2] transition-all">
+                ยกเลิก
+              </button>
+              <button type="button" onClick={handleAdd}
+                disabled={!position || !carModel.trim() || priceNum <= 0}
+                className="flex-1 py-3 rounded-2xl text-sm font-bold text-white bg-[#3B3A36] hover:bg-[#2D2D2D] transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+                {priceNum > 0 ? `เพิ่มในบิล ${formatCurrency(priceNum)}` : 'เพิ่มในบิล'}
+              </button>
             </div>
           </div>
         </Dialog.Content>

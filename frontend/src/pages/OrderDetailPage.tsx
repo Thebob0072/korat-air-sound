@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { flushSync } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, Printer, Plus, Trash2, CreditCard, Loader2, Search, FileDown } from 'lucide-react';
@@ -78,10 +79,22 @@ export default function OrderDetailPage() {
   const { print, isPending: isPrinting } = usePrinter();
   const { docRef: receiptRef, exportPDF: exportReceiptPDF, isExporting: isExportingReceipt } = usePDFExport();
   const { docRef: quotationRef, exportPDF: exportQuotationPDF, isExporting: isExportingQuotation } = usePDFExport();
+  const { docRef: invoiceRef, exportPDF: exportInvoicePDF, isExporting: isExportingInvoice } = usePDFExport();
 
   const [showAddItem, setShowAddItem] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [showPayConfirm, setShowPayConfirm] = useState(false);
+
+  // PDF export options dialog
+  const [showPDFOptions, setShowPDFOptions] = useState(false);
+  const [pdfOptionsFor, setPdfOptionsFor] = useState<'receipt' | 'quotation' | 'invoice'>('quotation');
+  const [isCorp, setIsCorp] = useState(false);
+  const [corpName, setCorpName] = useState('');
+  const [corpAddress, setCorpAddress] = useState('');
+  const [corpPhone, setCorpPhone] = useState('');
+  const [receiptBillingInfo, setReceiptBillingInfo] = useState<{ orgName: string; address: string; phone: string } | undefined>(undefined);
+  const [quotationBillingInfo, setQuotationBillingInfo] = useState<{ orgName: string; address: string; phone: string } | undefined>(undefined);
+  const [invoiceBillingInfo, setInvoiceBillingInfo] = useState<{ orgName: string; address: string; phone: string } | undefined>(undefined);
 
   // ── Queries ───────────────────────────────────────────────────────────────
 
@@ -177,6 +190,33 @@ export default function OrderDetailPage() {
 
   const isEditable = order.status === 'Draft' || order.status === 'Quoted';
   const hasItems = (order.orderItems?.length ?? 0) > 0;
+  const isCreditEligible = !!(order.vehicle?.customer?.name && order.vehicle?.customer?.phone);
+
+  const openPDFOptions = (docType: 'receipt' | 'quotation' | 'invoice') => {
+    setPdfOptionsFor(docType);
+    setIsCorp(false);
+    setCorpName('');
+    setCorpAddress('');
+    setCorpPhone('');
+    setShowPDFOptions(true);
+  };
+
+  const handleConfirmPDF = () => {
+    const info = isCorp && corpName.trim()
+      ? { orgName: corpName.trim(), address: corpAddress.trim(), phone: corpPhone.trim() }
+      : undefined;
+    setShowPDFOptions(false);
+    if (pdfOptionsFor === 'receipt') {
+      flushSync(() => setReceiptBillingInfo(info));
+      exportReceiptPDF(`receipt-${order.orderNumber}.pdf`);
+    } else if (pdfOptionsFor === 'quotation') {
+      flushSync(() => setQuotationBillingInfo(info));
+      exportQuotationPDF(`quotation-${order.orderNumber}.pdf`);
+    } else {
+      flushSync(() => setInvoiceBillingInfo(info));
+      exportInvoicePDF(`invoice-${order.orderNumber}.pdf`);
+    }
+  };
 
   return (
     <>
@@ -213,7 +253,7 @@ export default function OrderDetailPage() {
             {hasItems && order.status !== 'Cancelled' && (
               <Button
                 variant="outline"
-                onClick={() => exportQuotationPDF(`quotation-${order.orderNumber}.pdf`)}
+                onClick={() => openPDFOptions('quotation')}
                 disabled={isExportingQuotation}
               >
                 {isExportingQuotation ? (
@@ -224,9 +264,23 @@ export default function OrderDetailPage() {
                 PDF ใบเสนอราคา
               </Button>
             )}
+            {hasItems && isCreditEligible && order.status !== 'Cancelled' && order.status !== 'Draft' && (
+              <Button
+                variant="outline"
+                onClick={() => openPDFOptions('invoice')}
+                disabled={isExportingInvoice}
+              >
+                {isExportingInvoice ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <FileDown className="h-4 w-4 mr-2" />
+                )}
+                PDF ใบวางบิล
+              </Button>
+            )}
             {order.status === 'Paid' && (
               <Button
-                onClick={() => exportReceiptPDF(`receipt-${order.orderNumber}.pdf`)}
+                onClick={() => openPDFOptions('receipt')}
                 disabled={isExportingReceipt}
               >
                 {isExportingReceipt ? (
@@ -457,18 +511,124 @@ export default function OrderDetailPage() {
       {/* ── Print layout ──────────────────────────────────────────────────── */}
       <PrintDocument order={order} />
 
+      {/* ── PDF options dialog (shared for all doc types) ────────────────── */}
+      {showPDFOptions && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-white rounded-[24px] shadow-[0_24px_80px_rgb(0,0,0,0.18)] border border-[#E8E4DF] overflow-hidden">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-[#E8E4DF]">
+              <h2 className="text-base font-bold text-[#2D2D2D]">
+                {pdfOptionsFor === 'receipt' ? 'ตัวเลือกใบเสร็จ' : pdfOptionsFor === 'invoice' ? 'ตัวเลือกใบวางบิล' : 'ตัวเลือกใบเสนอราคา'}
+              </h2>
+              <p className="text-xs text-[#878681] mt-0.5">เลือกรูปแบบผู้รับเอกสาร</p>
+            </div>
+
+            <div className="px-6 py-5 space-y-4">
+              {/* Toggle: personal vs corp */}
+              <div className="flex bg-[#F0EDE8] rounded-2xl p-1">
+                <button
+                  type="button"
+                  onClick={() => setIsCorp(false)}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${!isCorp ? 'bg-white text-[#2D2D2D] shadow-sm' : 'text-[#878681] hover:text-[#2D2D2D]'}`}
+                >
+                  บุคคลธรรมดา
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsCorp(true)}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${isCorp ? 'bg-white text-[#2D2D2D] shadow-sm' : 'text-[#878681] hover:text-[#2D2D2D]'}`}
+                >
+                  นิติบุคคล / บริษัท
+                </button>
+              </div>
+
+              {/* Personal mode — show default customer info */}
+              {!isCorp && (
+                <div className="bg-[#F7F5F2] rounded-2xl px-4 py-3 space-y-1.5">
+                  <p className="text-xs font-semibold text-[#878681] uppercase tracking-wide">ข้อมูลลูกค้าที่จะแสดง</p>
+                  <p className="text-sm font-medium text-[#2D2D2D]">{order.vehicle?.customer?.name || '—'}</p>
+                  <p className="text-sm text-[#878681] font-mono">{order.vehicle?.customer?.phone || '—'}</p>
+                </div>
+              )}
+
+              {/* Corp fields */}
+              {isCorp && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#878681] uppercase tracking-wide mb-1.5">ชื่อบริษัท / องค์กร <span className="text-[#C0BEBA]">*</span></label>
+                    <input
+                      type="text"
+                      value={corpName}
+                      onChange={(e) => setCorpName(e.target.value)}
+                      placeholder="บริษัท ABC จำกัด"
+                      autoFocus
+                      className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-4 py-2.5 text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#878681] uppercase tracking-wide mb-1.5">ที่อยู่</label>
+                    <textarea
+                      value={corpAddress}
+                      onChange={(e) => setCorpAddress(e.target.value)}
+                      placeholder="123 ถ.ตัวอย่าง แขวง/ตำบล เขต/อำเภอ จังหวัด รหัสไปรษณีย์"
+                      rows={2}
+                      className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-4 py-2.5 text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all resize-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#878681] uppercase tracking-wide mb-1.5">เบอร์โทร</label>
+                    <input
+                      type="tel"
+                      value={corpPhone}
+                      onChange={(e) => setCorpPhone(e.target.value)}
+                      placeholder="02-XXX-XXXX"
+                      className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-4 py-2.5 text-sm font-mono text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 pb-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowPDFOptions(false)}
+                className="flex-1 bg-[#F0EDE8] hover:bg-[#E5E5E3] rounded-2xl px-4 py-3 text-sm font-medium text-[#878681] hover:text-[#2D2D2D] transition-all"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmPDF}
+                disabled={isCorp && !corpName.trim()}
+                className="flex-1 bg-[#3B3A36] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-2xl px-4 py-3 text-sm font-semibold transition-all"
+              >
+                ออก PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Off-screen PDF templates for html2canvas capture */}
       <div
         aria-hidden="true"
         style={{ position: 'fixed', left: '-9999px', top: 0, zIndex: -1, pointerEvents: 'none' }}
       >
-        <PDFDocument ref={receiptRef} order={order} docType="receipt" />
+        <PDFDocument ref={receiptRef} order={order} docType="receipt" billingInfo={receiptBillingInfo} />
       </div>
       <div
         aria-hidden="true"
         style={{ position: 'fixed', left: '-9999px', top: 0, zIndex: -1, pointerEvents: 'none' }}
       >
-        <PDFDocument ref={quotationRef} order={order} docType="quotation" />
+        <PDFDocument ref={quotationRef} order={order} docType="quotation" billingInfo={quotationBillingInfo} />
+      </div>
+      <div
+        aria-hidden="true"
+        style={{ position: 'fixed', left: '-9999px', top: 0, zIndex: -1, pointerEvents: 'none' }}
+      >
+        <PDFDocument ref={invoiceRef} order={order} docType="invoice" billingInfo={invoiceBillingInfo} />
       </div>
     </>
   );

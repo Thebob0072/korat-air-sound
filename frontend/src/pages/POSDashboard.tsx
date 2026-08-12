@@ -87,6 +87,7 @@ export default function POSDashboard() {
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   const vehicle = usePOSCartStore((s) => s.bills[s.activeBillId]?.vehicle ?? null);
+  const isCreditEligible = !!(vehicle?.customer?.name && vehicle?.customer?.phone);
   const items = usePOSCartStore((s) => s.bills[s.activeBillId]?.items ?? []);
   const setVehicle = usePOSCartStore((s) => s.setVehicle);
   const addItem = usePOSCartStore((s) => s.addItem);
@@ -268,7 +269,7 @@ export default function POSDashboard() {
 
           {/* Vehicle search */}
           <div className="px-3 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4 space-y-3">
-            <div className="flex gap-2">
+            <div className="flex gap-2 max-w-2xl">
               <div className="relative flex-1">
                 <Car className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#878681] pointer-events-none" />
                 <input
@@ -278,7 +279,7 @@ export default function POSDashboard() {
                   onChange={(e) => { setQuery(e.target.value); setSearchResults([]); setSearchError(''); }}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); if (e.key === 'Escape') setSearchResults([]); }}
                   placeholder="พิมพ์เลขทะเบียนรถ / เบอร์โทร..."
-                  className="w-full h-12 pl-12 pr-4 text-sm text-[#2D2D2D] bg-white rounded-full shadow-[0_2px_12px_rgb(0,0,0,0.06)] border-0 focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all duration-300 placeholder:text-[#878681]"
+                  className="w-full h-12 pl-12 pr-4 text-sm font-medium text-[#2D2D2D] bg-white rounded-full shadow-[0_2px_12px_rgb(0,0,0,0.06)] border-0 focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all duration-300 placeholder:text-[#878681] placeholder:font-normal"
                   disabled={isSearching}
                   autoComplete="off"
                 />
@@ -354,7 +355,7 @@ export default function POSDashboard() {
 
           {/* Product search */}
           <div className="px-3 sm:px-6 pb-3 sm:pb-4">
-            <div className="relative" ref={suggestionsRef}>
+            <div className="relative max-w-2xl" ref={suggestionsRef}>
               <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#878681] pointer-events-none" />
               <input
                 ref={productInputRef}
@@ -364,7 +365,7 @@ export default function POSDashboard() {
                 onFocus={() => productQuery.length > 0 && setShowSuggestions(true)}
                 onKeyDown={(e) => { if (e.key === 'Escape') { setProductQuery(''); setShowSuggestions(false); } }}
                 placeholder="ค้นหาสินค้า / รหัสสินค้า..."
-                className="w-full h-12 pl-12 pr-10 text-sm text-[#2D2D2D] bg-white rounded-full shadow-[0_2px_12px_rgb(0,0,0,0.06)] border-0 focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all duration-300 placeholder:text-[#878681]"
+                className="w-full h-12 pl-12 pr-10 text-sm font-medium text-[#2D2D2D] bg-white rounded-full shadow-[0_2px_12px_rgb(0,0,0,0.06)] border-0 focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all duration-300 placeholder:text-[#878681] placeholder:font-normal"
                 autoComplete="off"
               />
               {productQuery && (
@@ -540,127 +541,151 @@ export default function POSDashboard() {
             <ChevronLeft className="h-4 w-4" />
             กลับเพิ่มสินค้า
           </button>
-          <div className="flex-1 flex flex-col bg-[#F0EDE8] rounded-[28px] shadow-[0_8px_40px_rgb(0,0,0,0.12)] overflow-hidden">
+          <div className="flex-1 flex flex-col bg-white rounded-[24px] shadow-[0_8px_40px_rgb(0,0,0,0.12)] overflow-hidden">
 
-            {/* Receipt header */}
-            <div className="px-6 pt-5 pb-4">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#C0BEBA]">บิลปัจจุบัน</p>
-                {items.length > 0 && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <button className="text-xs text-[#C0BEBA] hover:text-rose-400 flex items-center gap-1 transition-colors duration-200">
-                        <X className="h-3 w-3" />ล้างบิล
-                      </button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>ล้างบิลทั้งหมด?</AlertDialogTitle>
-                        <AlertDialogDescription>รายการทั้งหมดในบิลจะถูกลบออก ไม่สามารถกู้คืนได้</AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                        <AlertDialogAction onClick={clearCart} className="bg-rose-500 hover:opacity-90 text-white">ล้างบิล</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
+            {/* Bill header */}
+            <div className="bg-[#F0EDE8] px-5 py-4 flex items-center justify-between shrink-0">
+              <div>
+                <p className="text-[11px] font-bold text-[#C0BEBA] tracking-[0.1em] uppercase">บิลปัจจุบัน</p>
+                <p className="text-sm font-bold text-[#2D2D2D] mt-0.5 leading-none">Korat Air &amp; Sound</p>
               </div>
+              {items.length > 0 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button className="text-xs text-[#C0BEBA] hover:text-rose-400 flex items-center gap-1 transition-colors duration-200">
+                      <X className="h-3 w-3" />ล้างบิล
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>ล้างบิลทั้งหมด?</AlertDialogTitle>
+                      <AlertDialogDescription>รายการทั้งหมดในบิลจะถูกลบออก ไม่สามารถกู้คืนได้</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                      <AlertDialogAction onClick={clearCart} className="bg-rose-500 hover:opacity-90 text-white">ล้างบิล</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
 
+            {/* Vehicle section */}
+            <div className="px-5 py-4 bg-[#F7F5F2] border-b border-[#EAE7E2] shrink-0">
               {vehicle ? (
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-mono font-black text-2xl tracking-[0.12em] text-[#2D2D2D] leading-none">
-                      {vehicle.licensePlate}
-                    </p>
-                    <p className="text-xs text-[#878681] mt-1.5">
-                      {[vehicle.brand && `${vehicle.brand} ${vehicle.model}`, vehicle.customer?.name].filter(Boolean).join(' · ')}
-                    </p>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="bg-[#3B3A36] rounded-xl px-3 py-2 shrink-0">
+                      <p className="font-mono font-black text-base tracking-[0.1em] text-white leading-none">
+                        {vehicle.licensePlate}
+                      </p>
+                    </div>
+                    <div className="min-w-0">
+                      {(vehicle.brand || vehicle.model) && (
+                        <p className="text-xs font-semibold text-[#2D2D2D] truncate">
+                          {[vehicle.brand, vehicle.model].filter(Boolean).join(' ')}
+                        </p>
+                      )}
+                      {vehicle.customer?.name && (
+                        <p className="text-xs text-[#878681] truncate mt-0.5">{vehicle.customer.name}</p>
+                      )}
+                      {!vehicle.brand && !vehicle.customer?.name && (
+                        <p className="text-xs text-[#C0BEBA]">ไม่มีข้อมูลเพิ่มเติม</p>
+                      )}
+                    </div>
                   </div>
                   <button
                     onClick={handleNewCustomer}
-                    className="flex items-center gap-1 text-[10px] text-[#C0BEBA] hover:text-[#878681] transition-colors shrink-0 mt-1"
+                    className="flex items-center gap-1 text-[10px] text-[#C0BEBA] hover:text-[#878681] transition-colors shrink-0"
                   >
                     <RotateCcw className="h-3 w-3" />
                     เปลี่ยน
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center gap-2.5 py-3 px-4 bg-white/50 rounded-2xl border border-dashed border-[#D8D5D0]">
+                <div className="flex items-center gap-2.5 py-2.5 px-4 bg-white rounded-xl border border-dashed border-[#D8D5D0]">
                   <Car className="h-4 w-4 text-[#C0BEBA]" />
-                  <p className="text-sm text-[#C0BEBA]">ยังไม่ได้เลือกรถ</p>
+                  <p className="text-sm text-[#C0BEBA]">ค้นหาทะเบียนรถก่อนเพิ่มรายการ</p>
                 </div>
               )}
             </div>
 
-            <div className="mx-6 border-t border-dashed border-[#E5E5E3]" />
-
             {/* Item list */}
             <div className="flex-1 overflow-y-auto">
               {items.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full select-none gap-2.5 py-12">
-                  <div className="w-12 h-12 rounded-2xl bg-white/60 flex items-center justify-center">
-                    <FileText className="h-5 w-5 text-[#D8D5D0]" strokeWidth={1.5} />
+                <div className="flex flex-col items-center justify-center h-full select-none gap-3 py-12">
+                  <div className="w-14 h-14 rounded-2xl bg-[#F0EDE8] flex items-center justify-center">
+                    <FileText className="h-6 w-6 text-[#D8D5D0]" strokeWidth={1.5} />
                   </div>
-                  <p className="text-sm text-[#C0BEBA]">ยังไม่มีรายการ</p>
+                  <p className="text-sm text-[#C0BEBA]">ยังไม่มีรายการในบิล</p>
                 </div>
               ) : (
-                <div className="px-6 pt-4">
-                  <div className="flex items-center gap-2 pb-2">
-                    <p className="flex-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[#C0BEBA]">รายการ</p>
-                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#C0BEBA] w-14 text-center">จำนวน</p>
-                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#C0BEBA] w-20 text-right">ราคา</p>
+                <div className="px-5 pt-3 pb-2">
+                  <div className="flex items-center gap-2 pb-2 border-b border-[#F0EDE8]">
+                    <p className="flex-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[#C0BEBA]">รายการ ({items.length})</p>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#C0BEBA] w-20 text-right">รวม</p>
                     <div className="w-4" />
                   </div>
                   {items.map((item) => (
-                    <div key={item.id} className="group flex items-center gap-2 py-3 border-b border-dashed border-[#F0EFED] last:border-0">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-[#2D2D2D] font-medium leading-snug truncate">{item.product.name}</p>
-                        <p className="text-[11px] text-[#878681] mt-0.5 font-mono tabular-nums">
-                          {formatCurrency(item.product.sellingPrice)} × {item.quantity}
+                    <div key={item.id} className="group flex items-start gap-3 py-3 border-b border-[#F7F5F2] last:border-0">
+                      <div className="flex-1 min-w-0 pt-0.5">
+                        <p className="text-sm text-[#2D2D2D] font-semibold leading-snug">{item.product.name}</p>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <button onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            className="h-6 w-6 rounded-lg bg-[#F0EDE8] hover:bg-[#E5E5E3] text-[#878681] hover:text-[#2D2D2D] flex items-center justify-center transition-all duration-200 shrink-0"
+                            aria-label="ลดจำนวน">
+                            <Minus className="h-3 w-3" />
+                          </button>
+                          <span className="text-xs font-bold w-5 text-center text-[#2D2D2D] tabular-nums">{item.quantity}</span>
+                          <button onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            className="h-6 w-6 rounded-lg bg-[#F0EDE8] hover:bg-[#E5E5E3] text-[#878681] hover:text-[#2D2D2D] flex items-center justify-center transition-all duration-200 shrink-0"
+                            aria-label="เพิ่มจำนวน">
+                            <Plus className="h-3 w-3" />
+                          </button>
+                          <span className="text-[11px] text-[#C0BEBA] font-mono tabular-nums">
+                            × {formatCurrency(item.product.sellingPrice)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 pt-0.5">
+                        <p className="text-sm font-mono font-bold text-[#2D2D2D] w-20 text-right tabular-nums">
+                          {formatCurrency(Number(item.product.sellingPrice) * item.quantity)}
                         </p>
+                        <button onClick={() => removeItem(item.id)}
+                          className="h-5 w-5 text-[#C0BEBA] hover:text-rose-400 flex items-center justify-center transition-all duration-200 shrink-0 opacity-0 group-hover:opacity-100"
+                          aria-label="ลบรายการ">
+                          <X className="h-3 w-3" />
+                        </button>
                       </div>
-                      <div className="flex items-center gap-0.5 shrink-0">
-                        <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="h-5 w-5 text-[#C0BEBA] hover:text-[#2D2D2D] rounded-full flex items-center justify-center transition-all duration-200" aria-label="ลดจำนวน"><Minus className="h-3 w-3" /></button>
-                        <span className="text-xs font-bold w-5 text-center text-[#2D2D2D] tabular-nums">{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="h-5 w-5 text-[#C0BEBA] hover:text-[#2D2D2D] rounded-full flex items-center justify-center transition-all duration-200" aria-label="เพิ่มจำนวน"><Plus className="h-3 w-3" /></button>
-                      </div>
-                      <p className="text-sm font-mono font-semibold text-[#2D2D2D] w-20 text-right shrink-0 tabular-nums">
-                        {formatCurrency(Number(item.product.sellingPrice) * item.quantity)}
-                      </p>
-                      <button onClick={() => removeItem(item.id)} className="h-5 w-4 text-[#C0BEBA] hover:text-rose-400 flex items-center justify-center transition-all duration-200 shrink-0 opacity-0 group-hover:opacity-100" aria-label="ลบรายการ"><X className="h-3 w-3" /></button>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            <div className="mx-6 border-t border-dashed border-[#E5E5E3]" />
-
             {/* Footer */}
-            <div className="px-6 pt-4 pb-6 space-y-3">
+            <div className="border-t border-[#EAE7E2] px-5 pt-4 pb-5 space-y-3 shrink-0 bg-white">
               {/* Subtotal + discount */}
               {items.length > 0 && (
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-[#878681]">ราคารวม</span>
                     <span className="text-xs font-mono tabular-nums text-[#878681]">{formatCurrency(getSubtotal())}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <label htmlFor="pos-discount" className="text-xs text-[#878681] shrink-0">ส่วนลด</label>
+                  <div className="flex items-center justify-between gap-3">
+                    <label htmlFor="pos-discount" className="text-xs text-[#878681] shrink-0">ส่วนลด (฿)</label>
                     <input
                       id="pos-discount"
-                      type="number"
-                      min="0"
-                      step="1"
+                      type="text"
                       inputMode="numeric"
                       value={discountRaw}
                       onChange={(e) => {
-                        setDiscountRaw(e.target.value);
-                        setDiscount(Math.max(0, parseFloat(e.target.value) || 0));
+                        const raw = e.target.value.replace(/[^\d]/g, '');
+                        setDiscountRaw(raw);
+                        setDiscount(Math.max(0, parseInt(raw, 10) || 0));
                       }}
                       placeholder="0"
-                      className="flex-1 min-w-0 h-8 px-3 text-sm text-right font-mono bg-[#F0EDE8] border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all"
+                      className="w-24 h-8 px-3 text-sm text-right font-mono bg-[#F0EDE8] border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all"
                     />
                   </div>
                   {storeDiscount > 0 && (
@@ -672,33 +697,52 @@ export default function POSDashboard() {
                 </div>
               )}
 
-              <div className="flex items-end justify-between">
+              {/* Total */}
+              <div className="bg-[#F7F5F2] rounded-2xl px-4 py-3 flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#878681]">{storeDiscount > 0 ? 'ยอดชำระ' : 'ยอดรวม'}</p>
-                  <p className="text-xs text-[#C0BEBA] mt-0.5">{getItemCount()} ชิ้น · {items.length} รายการ</p>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#878681]">
+                    {storeDiscount > 0 ? 'ยอดชำระ' : 'ยอดรวม'}
+                  </p>
+                  <p className="text-[11px] text-[#C0BEBA] mt-0.5 tabular-nums">
+                    {getItemCount()} ชิ้น · {items.length} รายการ
+                  </p>
                 </div>
-                <p className="font-mono font-black text-4xl text-[#2D2D2D] leading-none tabular-nums">
+                <p className="font-mono font-black text-[32px] text-[#2D2D2D] leading-none tabular-nums">
                   {formatCurrency(getTotal())}
                 </p>
               </div>
 
+              {/* Primary: ชำระเงิน */}
               <button
                 onClick={() => setShowCheckout(true)}
                 disabled={items.length === 0 || !vehicle}
-                className="w-full py-4 bg-[#3B3A36] hover:opacity-90 active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-2xl transition-all duration-300 flex items-center justify-center gap-2"
+                className="w-full py-3.5 bg-[#3B3A36] hover:opacity-90 active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed text-white text-sm font-bold rounded-2xl transition-all duration-300 flex items-center justify-center gap-2"
               >
-                <CreditCard className="h-5 w-5" />
+                <CreditCard className="h-4 w-4" />
                 ชำระเงิน
               </button>
 
-              <button
-                onClick={() => setShowCheckout(true)}
-                disabled={items.length === 0 || !vehicle}
-                className="w-full h-11 bg-[#D8D5D0] hover:bg-[#CCCAC5] active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed text-[#4A4845] hover:text-[#2D2D2D] text-sm font-medium rounded-2xl transition-all duration-300 flex items-center justify-center gap-2"
-              >
-                <FileText className="h-4 w-4" />
-                ออกใบเสนอราคา
-              </button>
+              {/* Secondary row */}
+              <div className={`grid gap-2 ${isCreditEligible ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                <button
+                  onClick={() => setShowCheckout(true)}
+                  disabled={items.length === 0 || !vehicle}
+                  className="h-10 bg-[#F0EDE8] hover:bg-[#E5E5E3] active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed text-[#4A4845] hover:text-[#2D2D2D] text-xs font-semibold rounded-xl transition-all duration-300 flex items-center justify-center gap-1.5"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  ใบเสนอราคา
+                </button>
+                {isCreditEligible && (
+                  <button
+                    onClick={() => setShowCheckout(true)}
+                    disabled={items.length === 0 || !vehicle}
+                    className="h-10 bg-blue-50 hover:bg-blue-100 active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed text-blue-700 text-xs font-semibold rounded-xl transition-all duration-300 flex items-center justify-center gap-1.5 border border-blue-200"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    วางบิล (เครดิต)
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -736,11 +780,16 @@ export default function POSDashboard() {
         />
       )}
 
-      <TintingModal open={showTinting} onClose={() => setShowTinting(false)} />
-      <OtherItemModal open={showOther} onClose={() => setShowOther(false)} />
-      <GlassModal open={showGlass} onClose={() => setShowGlass(false)} />
-      <AirConModal open={showAirCon} onClose={() => setShowAirCon(false)} />
-      <SoundModal open={showSound} onClose={() => setShowSound(false)} />
+      <TintingModal
+        open={showTinting}
+        onClose={() => setShowTinting(false)}
+        vehicleBrand={vehicle?.brand}
+        vehicleModel={vehicle?.model}
+      />
+      <OtherItemModal open={showOther} onClose={() => setShowOther(false)} vehicleBrand={vehicle?.brand} vehicleModel={vehicle?.model} />
+      <GlassModal open={showGlass} onClose={() => setShowGlass(false)} vehicleBrand={vehicle?.brand} vehicleModel={vehicle?.model} />
+      <AirConModal open={showAirCon} onClose={() => setShowAirCon(false)} vehicleBrand={vehicle?.brand} vehicleModel={vehicle?.model} />
+      <SoundModal open={showSound} onClose={() => setShowSound(false)} vehicleBrand={vehicle?.brand} vehicleModel={vehicle?.model} />
       <CheckoutModal open={showCheckout} onClose={() => { setShowCheckout(false); setBillView(false); }} />
     </>
   );

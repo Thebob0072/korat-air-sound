@@ -72,8 +72,8 @@ export type OrderItemMeta = TintMeta | AirConMeta | GlassMeta | SoundMeta;
 
 export interface Customer {
   id: string;
-  name: string;
-  phone: string;
+  name: string | null;
+  phone: string | null;
   createdAt: string;
   vehicles?: Vehicle[];
 }
@@ -81,10 +81,10 @@ export interface Customer {
 export interface Vehicle {
   id: string;
   licensePlate: string;
-  brand: string;
-  model: string;
-  customerId: string;
-  customer?: Customer;
+  brand: string | null;
+  model: string | null;
+  customerId: string | null;
+  customer?: Customer | null;
   orders?: Order[];
 }
 
@@ -151,15 +151,15 @@ export interface Order {
 // ─── DTO types used in forms ──────────────────────────────────────────────────
 
 export interface CreateCustomerDto {
-  name: string;
-  phone: string;
+  name?: string;
+  phone?: string;
 }
 
 export interface CreateVehicleDto {
   licensePlate: string;
-  brand: string;
-  model: string;
-  customerId: string;
+  brand?: string;
+  model?: string;
+  customerId?: string;
 }
 
 export interface CreateProductDto {

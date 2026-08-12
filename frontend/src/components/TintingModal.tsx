@@ -10,41 +10,87 @@ import { ProductCategory } from '@/types';
 interface TintingModalProps {
   open: boolean;
   onClose: () => void;
+  vehicleBrand?: string | null;
+  vehicleModel?: string | null;
 }
 
 const CAR_TYPES = [
-  'กระบะ 1 ตอน',
-  'แค็ป',
-  '4 ประตู',
-  'เก๋งกลาง 1200cc',
-  'เก๋งใหญ่ 1600cc++',
-  'SUV',
+  'รถตอนเดียว',
+  'รถแค็บ',
+  'รถ 4 ประตู',
+  'รถเก๋งเล็ก',
+  'รถเก๋งกลาง',
+  'รถเก๋งใหญ่',
+  'SUV / PPV',
   'รถแวน',
   'รถตู้',
-  'รถไฟฟ้า เก๋ง',
-  'รถไฟฟ้า แวน',
-  'รถไฟฟ้า ตู้',
-  'รถยุโรป เก๋ง',
-  'รถยุโรป SUV',
+  'MPV',
 ] as const;
 
-const TINT_BRANDS = ['ธรรมดา', 'ลามิน่า', 'ไฮคูล', '3M', 'อื่นๆ'] as const;
+// brand keys ตรงกับ PRICE_TABLE และ TINT_BRANDS
+const TINT_BRANDS = ['บีซี', 'ไฮคูล', '3M', 'ลามิน่า', 'อื่นๆ'] as const;
 
-type PriceEntry = { sell: number; cost: number };
+// sell = ราคาพิเศษ (ปัจจุบัน), ref = ราคาปกติ (สำหรับแสดงเป็น reference)
+type PriceEntry = { sell: number; ref: number; cost: number };
 const PRICE_TABLE: Record<string, Partial<Record<string, PriceEntry>>> = {
-  'กระบะ 1 ตอน':       { 'ธรรมดา': { sell: 1200, cost: 700  }, 'ลามิน่า': { sell: 1800, cost: 950  }, 'ไฮคูล': { sell: 2200, cost: 1200 }, '3M': { sell: 3500, cost: 1600 } },
-  'แค็ป':               { 'ธรรมดา': { sell: 1800, cost: 1000 }, 'ลามิน่า': { sell: 2400, cost: 1300 }, 'ไฮคูล': { sell: 3000, cost: 1600 }, '3M': { sell: 4500, cost: 2000 } },
-  '4 ประตู':            { 'ธรรมดา': { sell: 2000, cost: 1100 }, 'ลามิน่า': { sell: 2800, cost: 1500 }, 'ไฮคูล': { sell: 3500, cost: 1800 }, '3M': { sell: 5000, cost: 2300 } },
-  'เก๋งกลาง 1200cc':   { 'ธรรมดา': { sell: 2000, cost: 1100 }, 'ลามิน่า': { sell: 2800, cost: 1500 }, 'ไฮคูล': { sell: 3500, cost: 1800 }, '3M': { sell: 5000, cost: 2300 } },
-  'เก๋งใหญ่ 1600cc++': { 'ธรรมดา': { sell: 2500, cost: 1400 }, 'ลามิน่า': { sell: 3200, cost: 1700 }, 'ไฮคูล': { sell: 4000, cost: 2100 }, '3M': { sell: 6000, cost: 2800 } },
-  'SUV':                { 'ธรรมดา': { sell: 3000, cost: 1700 }, 'ลามิน่า': { sell: 4000, cost: 2100 }, 'ไฮคูล': { sell: 5000, cost: 2600 }, '3M': { sell: 7500, cost: 3500 } },
-  'รถแวน':              { 'ธรรมดา': { sell: 2800, cost: 1600 }, 'ลามิน่า': { sell: 3800, cost: 2000 }, 'ไฮคูล': { sell: 4800, cost: 2500 }, '3M': { sell: 7000, cost: 3200 } },
-  'รถตู้':              { 'ธรรมดา': { sell: 3200, cost: 1900 }, 'ลามิน่า': { sell: 4500, cost: 2400 }, 'ไฮคูล': { sell: 5500, cost: 2900 }, '3M': { sell: 8000, cost: 3700 } },
-  'รถไฟฟ้า เก๋ง':      { 'ธรรมดา': { sell: 2500, cost: 1400 }, 'ลามิน่า': { sell: 3500, cost: 1900 }, 'ไฮคูล': { sell: 4500, cost: 2300 }, '3M': { sell: 6500, cost: 3000 } },
-  'รถไฟฟ้า แวน':       { 'ธรรมดา': { sell: 3000, cost: 1700 }, 'ลามิน่า': { sell: 4200, cost: 2200 }, 'ไฮคูล': { sell: 5200, cost: 2700 }, '3M': { sell: 7500, cost: 3500 } },
-  'รถไฟฟ้า ตู้':       { 'ธรรมดา': { sell: 3500, cost: 2000 }, 'ลามิน่า': { sell: 5000, cost: 2700 }, 'ไฮคูล': { sell: 6000, cost: 3200 }, '3M': { sell: 9000, cost: 4200 } },
-  'รถยุโรป เก๋ง':      { 'ธรรมดา': { sell: 2800, cost: 1600 }, 'ลามิน่า': { sell: 4000, cost: 2100 }, 'ไฮคูล': { sell: 5000, cost: 2600 }, '3M': { sell: 7500, cost: 3500 } },
-  'รถยุโรป SUV':       { 'ธรรมดา': { sell: 3500, cost: 2000 }, 'ลามิน่า': { sell: 5000, cost: 2700 }, 'ไฮคูล': { sell: 6000, cost: 3200 }, '3M': { sell: 9000, cost: 4200 } },
+  'รถตอนเดียว': {
+    'บีซี':    { sell: 1900, ref: 2900, cost: 1100 },
+    'ไฮคูล':  { sell: 3000, ref: 4000, cost: 1700 },
+    '3M':     { sell: 3500, ref: 4500, cost: 2000 },
+    'ลามิน่า':{ sell: 3500, ref: 4500, cost: 2000 },
+  },
+  'รถแค็บ': {
+    'บีซี':    { sell: 2500, ref: 3500, cost: 1400 },
+    'ไฮคูล':  { sell: 4000, ref: 5000, cost: 2200 },
+    '3M':     { sell: 4500, ref: 5500, cost: 2500 },
+    'ลามิน่า':{ sell: 4500, ref: 5500, cost: 2500 },
+  },
+  'รถ 4 ประตู': {
+    'บีซี':    { sell: 3000, ref: 4000, cost: 1700 },
+    'ไฮคูล':  { sell: 4500, ref: 5500, cost: 2500 },
+    '3M':     { sell: 4800, ref: 5800, cost: 2700 },
+    'ลามิน่า':{ sell: 4800, ref: 5800, cost: 2700 },
+  },
+  'รถเก๋งเล็ก': {
+    'บีซี':    { sell: 3300, ref: 4500, cost: 1800 },
+    'ไฮคูล':  { sell: 4800, ref: 5800, cost: 2700 },
+    '3M':     { sell: 5000, ref: 6000, cost: 2800 },
+    'ลามิน่า':{ sell: 5000, ref: 6000, cost: 2800 },
+  },
+  'รถเก๋งกลาง': {
+    'บีซี':    { sell: 3500, ref: 4800, cost: 2000 },
+    'ไฮคูล':  { sell: 5000, ref: 6000, cost: 2800 },
+    '3M':     { sell: 5500, ref: 6500, cost: 3100 },
+    'ลามิน่า':{ sell: 5500, ref: 6500, cost: 3100 },
+  },
+  'รถเก๋งใหญ่': {
+    'บีซี':    { sell: 3800, ref: 5300, cost: 2100 },
+    'ไฮคูล':  { sell: 5500, ref: 6500, cost: 3100 },
+    '3M':     { sell: 6500, ref: 7500, cost: 3700 },
+    'ลามิน่า':{ sell: 6500, ref: 7500, cost: 3700 },
+  },
+  'SUV / PPV': {
+    'บีซี':    { sell: 4500, ref: 6000, cost: 2500 },
+    'ไฮคูล':  { sell: 6500, ref: 7500, cost: 3700 },
+    '3M':     { sell: 7500, ref: 8500, cost: 4200 },
+    'ลามิน่า':{ sell: 7500, ref: 8500, cost: 4200 },
+  },
+  'รถแวน': {
+    'บีซี':    { sell: 4500, ref: 6000, cost: 2500 },
+    'ไฮคูล':  { sell: 6500, ref: 7500, cost: 3700 },
+    '3M':     { sell: 7500, ref: 8500, cost: 4200 },
+    'ลามิน่า':{ sell: 7500, ref: 8500, cost: 4200 },
+  },
+  'รถตู้': {
+    'บีซี':    { sell: 5500, ref: 7000, cost: 3100 },
+    '3M':     { sell: 9500, ref: 10500, cost: 5300 },
+    'ลามิน่า':{ sell: 9500, ref: 10500, cost: 5300 },
+  },
+  'MPV': {
+    'บีซี':    { sell: 5500, ref: 7000, cost: 3100 },
+    '3M':     { sell: 9500, ref: 10500, cost: 5300 },
+    'ลามิน่า':{ sell: 9500, ref: 10500, cost: 5300 },
+  },
 };
 
 /** Convert inch² → ft² */
@@ -52,7 +98,8 @@ const inchesToSqFt = (w: number, h: number) => (w * h) / 144;
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function TintingModal({ open, onClose }: TintingModalProps) {
+export function TintingModal({ open, onClose, vehicleBrand, vehicleModel }: TintingModalProps) {
+  const vehicleDisplay = [vehicleBrand, vehicleModel].filter(Boolean).join(' ');
   const addItem = usePOSCartStore((s) => s.addItem);
 
   const [mode, setMode] = useState<'package' | 'cut'>('package');
@@ -63,7 +110,6 @@ export function TintingModal({ open, onClose }: TintingModalProps) {
   const [showCarDrop, setShowCarDrop] = useState(false);
   const [brand, setBrand] = useState('');
   const [showBrandDrop, setShowBrandDrop] = useState(false);
-  const [model, setModel] = useState('');
   const [price, setPrice] = useState('');
   const [error, setError] = useState('');
   const carDropRef = useRef<HTMLDivElement>(null);
@@ -107,7 +153,7 @@ export function TintingModal({ open, onClose }: TintingModalProps) {
 
   const reset = () => {
     setTechnicianName(''); setCarType(''); setShowCarDrop(false);
-    setBrand(''); setShowBrandDrop(false); setModel(''); setPrice(''); setError('');
+    setBrand(''); setShowBrandDrop(false); setPrice(''); setError('');
     setCutWidth(''); setCutLength(''); setCutBrand(''); setShowCutBrandDrop(false);
     setCutPricePerSqFt(''); setCutLabel(''); setCutTechnician(''); setCutError('');
   };
@@ -119,13 +165,13 @@ export function TintingModal({ open, onClose }: TintingModalProps) {
   const handleAddPackage = () => {
     if (!carType) { setError('กรุณาเลือกประเภทรถ'); return; }
     if (!brand) { setError('กรุณาเลือกยี่ห้อฟิล์ม'); return; }
-    if (!model.trim()) { setError('กรุณาระบุรุ่นรถ'); return; }
     const priceNum = parseFloat(price);
     if (!price || isNaN(priceNum) || priceNum <= 0) { setError('กรุณาระบุราคาให้ถูกต้อง'); return; }
     setError('');
 
     const brandLabel = brand !== 'อื่นๆ' ? ` ${brand}` : '';
-    const label = `ฟิล์มกรองแสง${brandLabel} — ${model.trim()} (${carType})`;
+    const vehiclePart = vehicleDisplay ? ` — ${vehicleDisplay}` : '';
+    const label = `ฟิล์มกรองแสง${brandLabel}${vehiclePart} (${carType})`;
     const entry = carType && brand && brand !== 'อื่นๆ' ? PRICE_TABLE[carType]?.[brand] : undefined;
 
     addItem({
@@ -278,28 +324,28 @@ export function TintingModal({ open, onClose }: TintingModalProps) {
                   </div>
                 </div>
 
-                {/* รุ่นรถ */}
-                <div>
-                  <label htmlFor="tint-model" className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">รุ่นรถ *</label>
-                  <input id="tint-model" type="text" value={model} onChange={(e) => setModel(e.target.value)}
-                    placeholder="เช่น Toyota Fortuner, Honda Civic…"
-                    className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-4 py-2.5 text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all"
-                    autoComplete="off" />
-                </div>
+                {/* รุ่นรถ (แสดงจากรถที่เลือก) */}
+                {vehicleDisplay && (
+                  <div className="flex items-center gap-2.5 bg-[#F0EDE8] rounded-2xl px-4 py-2.5 border border-[#E5E0DA]">
+                    <span className="text-xs text-[#878681] shrink-0">รุ่นรถ</span>
+                    <span className="text-sm font-semibold text-[#2D2D2D] truncate">{vehicleDisplay}</span>
+                    <span className="text-[10px] text-[#C0BEBA] shrink-0 ml-auto">ดึงจากบิล</span>
+                  </div>
+                )}
 
                 {/* ราคา */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label htmlFor="tint-price" className="text-sm font-semibold text-[#2D2D2D]">ราคา (บาท) *</label>
                     <div className="flex items-center gap-1.5">
-                      {priceEntry?.sell && (
-                        <span className="text-xs text-[#5C6B62] font-medium bg-[#5C6B62]/10 px-2 py-0.5 rounded-full">
-                          แนะนำ {formatCurrency(priceEntry.sell)}
+                      {priceEntry?.ref && (
+                        <span className="text-xs text-[#9ca3af] line-through px-1">
+                          {formatCurrency(priceEntry.ref)}
                         </span>
                       )}
-                      {priceEntry?.cost && (
-                        <span className="text-xs text-[#878681] bg-[#F0EDE8] px-2 py-0.5 rounded-full">
-                          ทุน ~{formatCurrency(priceEntry.cost)}
+                      {priceEntry?.sell && (
+                        <span className="text-xs text-[#5C6B62] font-medium bg-[#5C6B62]/10 px-2 py-0.5 rounded-full">
+                          พิเศษ {formatCurrency(priceEntry.sell)}
                         </span>
                       )}
                     </div>
@@ -311,12 +357,12 @@ export function TintingModal({ open, onClose }: TintingModalProps) {
               </div>
 
               <div className="px-6 pb-6 space-y-3">
-                {carType && brand && model.trim() && priceNum > 0 && (
+                {carType && brand && priceNum > 0 && (
                   <div className="bg-[#F0EDE8] rounded-2xl px-4 py-3 flex items-center justify-between border border-[#E5E0DA]">
                     <div>
                       <p className="text-xs text-[#878681] mb-0.5">รายการที่จะเพิ่ม</p>
                       <p className="text-sm font-semibold text-[#2D2D2D]">
-                        ฟิล์มกรองแสง{brand !== 'อื่นๆ' ? ` ${brand}` : ''} — {model.trim()} ({carType})
+                        ฟิล์มกรองแสง{brand !== 'อื่นๆ' ? ` ${brand}` : ''}{vehicleDisplay ? ` — ${vehicleDisplay}` : ''} ({carType})
                       </p>
                     </div>
                     <p className="font-mono font-bold text-[#3B3A36] text-base">{formatCurrency(priceNum)}</p>

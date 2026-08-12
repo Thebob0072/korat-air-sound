@@ -7,9 +7,9 @@ const router = Router();
 
 const CreateVehicleSchema = z.object({
   licensePlate: z.string().min(1, 'License plate is required'),
-  brand: z.string().min(1, 'Brand is required'),
-  model: z.string().min(1, 'Model is required'),
-  customerId: z.string().uuid('Invalid customer ID'),
+  brand: z.string().optional(),
+  model: z.string().optional(),
+  customerId: z.string().uuid().optional(),
 });
 
 /** GET /api/vehicles/search?q=<license_plate_or_phone> */
@@ -71,6 +71,21 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       include: { customer: true },
     });
     res.status(201).json(vehicle);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** PATCH /api/vehicles/:id/link — เชื่อมรถ (anonymous) เข้ากับลูกค้า */
+router.patch('/:id/link', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { customerId } = z.object({ customerId: z.string().uuid() }).parse(req.body);
+    const vehicle = await prisma.vehicle.update({
+      where: { id: req.params.id },
+      data: { customerId },
+      include: { customer: true },
+    });
+    res.json(vehicle);
   } catch (err) {
     next(err);
   }

@@ -113,8 +113,8 @@ export const getReportSummary = (params?: { days?: number; months?: number }) =>
 
 export interface CustomerSummary {
   id: string;
-  name: string;
-  phone: string;
+  name: string | null;
+  phone: string | null;
   createdAt: string;
   totalRevenue: number;
   totalOrders: number;
@@ -123,8 +123,8 @@ export interface CustomerSummary {
   vehicles: Array<{
     id: string;
     licensePlate: string;
-    brand: string;
-    model: string;
+    brand: string | null;
+    model: string | null;
     orders: Array<{
       id: string;
       orderNumber: string;

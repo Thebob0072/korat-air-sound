@@ -80,14 +80,14 @@ export default function ProductsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <div className="h-7 w-1.5 bg-[#3B3A36] rounded-full shrink-0" />
-          <h1 className="text-xl font-bold text-[#2D2D2D]">สินค้าและอะไหล่</h1>
+      <div className="flex items-start justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#1A1917] tracking-tight">สินค้าและอะไหล่</h1>
+          <p className="text-sm text-[#878681] mt-0.5">จัดการสินค้า, ราคาทุน, และสต็อก</p>
         </div>
         <button
           onClick={openCreate}
-          className="flex items-center gap-2 bg-[#3B3A36] hover:opacity-90 active:scale-[0.98] text-white text-sm font-medium px-5 py-2.5 rounded-2xl transition-all"
+          className="flex items-center gap-2 bg-[#3B3A36] hover:opacity-90 active:scale-[0.98] text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all"
         >
           <Plus className="h-4 w-4" />
           เพิ่มสินค้า
@@ -133,13 +133,13 @@ export default function ProductsPage() {
           <table className="w-full min-w-[680px] text-sm">
             <thead className="bg-[#FAF9F7]">
               <tr className="border-b border-[#E5E5E3]">
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9894]">SKU</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9894]">ชื่อสินค้า</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9894]">หมวดหมู่</th>
-                <th className="text-right px-5 py-3 text-[11px] font-semibold text-[#9B9894]">ราคาทุน</th>
-                <th className="text-right px-5 py-3 text-[11px] font-semibold text-[#9B9894]">ราคาขาย</th>
-                <th className="text-center px-5 py-3 text-[11px] font-semibold text-[#9B9894]">คงเหลือ</th>
-                <th className="px-5 py-3 w-20" />
+                <th className="text-left px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">รหัส</th>
+                <th className="text-left px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">ชื่อสินค้า</th>
+                <th className="text-left px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">หมวด</th>
+                <th className="text-right px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">ราคาทุน</th>
+                <th className="text-right px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">ราคาขาย</th>
+                <th className="text-center px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">สต็อก</th>
+                <th className="px-5 py-3.5 w-20" />
               </tr>
             </thead>
             <tbody>
@@ -501,7 +501,7 @@ function ProductFormModal({ product, onClose }: ProductFormModalProps) {
                     <label className="block text-xs font-medium text-[#878681] mb-1.5">ขนาด (ตร.ฟุต)</label>
                     <input
                       type="number" min="0" step="0.5"
-                      className="w-full h-10 bg-[#F7F5F2] rounded-xl px-4 text-sm text-[#2D2D2D] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 placeholder:text-[#C0BEBA]"
+                      className="w-full h-10 bg-[#F7F5F2] rounded-xl px-4 text-sm font-medium text-[#2D2D2D] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 placeholder:text-[#C0BEBA] placeholder:font-normal"
                       value={form.squareFeet}
                       placeholder="เช่น 10"
                       onChange={(e) => {
@@ -515,7 +515,7 @@ function ProductFormModal({ product, onClose }: ProductFormModalProps) {
                   <div>
                     <label className="block text-xs font-medium text-[#878681] mb-1.5">ระบุยี่ห้อ</label>
                     <input
-                      className="w-full h-10 bg-[#F7F5F2] rounded-xl px-4 text-sm text-[#2D2D2D] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 placeholder:text-[#C0BEBA]"
+                      className="w-full h-10 bg-[#F7F5F2] rounded-xl px-4 text-sm font-medium text-[#2D2D2D] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 placeholder:text-[#C0BEBA] placeholder:font-normal"
                       value={form.brandCustom}
                       placeholder="ชื่อยี่ห้อฟิล์ม"
                       onChange={(e) => {
@@ -534,7 +534,7 @@ function ProductFormModal({ product, onClose }: ProductFormModalProps) {
                 <label className="block text-xs font-medium text-[#878681] mb-1.5">รุ่นปี (ค.ศ.)</label>
                 <input
                   type="number" min="1900" max="2100" step="1"
-                  className="w-full h-10 bg-[#F7F5F2] rounded-xl px-4 text-sm text-[#2D2D2D] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 placeholder:text-[#C0BEBA]"
+                  className="w-full h-10 bg-[#F7F5F2] rounded-xl px-4 text-sm font-medium text-[#2D2D2D] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 placeholder:text-[#C0BEBA] placeholder:font-normal"
                   value={form.modelYear}
                   placeholder="เช่น 2023"
                   onChange={(e) => setForm(p => ({ ...p, modelYear: e.target.value }))}
@@ -546,7 +546,7 @@ function ProductFormModal({ product, onClose }: ProductFormModalProps) {
             <div>
               <label className="block text-xs font-medium text-[#878681] mb-1.5">ชื่อสินค้า *</label>
               <input
-                className="w-full h-10 bg-[#F7F5F2] rounded-xl px-4 text-sm text-[#2D2D2D] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 placeholder:text-[#C0BEBA]"
+                className="w-full h-10 bg-[#F7F5F2] rounded-xl px-4 text-sm font-medium text-[#2D2D2D] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 placeholder:text-[#C0BEBA] placeholder:font-normal"
                 value={form.name}
                 onChange={set('name')}
                 required
@@ -558,7 +558,7 @@ function ProductFormModal({ product, onClose }: ProductFormModalProps) {
             <div>
               <label className="block text-xs font-medium text-[#878681] mb-1.5">ร้านที่นำเข้า</label>
               <input
-                className="w-full h-10 bg-[#F7F5F2] rounded-xl px-4 text-sm text-[#2D2D2D] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 placeholder:text-[#C0BEBA]"
+                className="w-full h-10 bg-[#F7F5F2] rounded-xl px-4 text-sm font-medium text-[#2D2D2D] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 placeholder:text-[#C0BEBA] placeholder:font-normal"
                 value={form.supplier}
                 onChange={set('supplier')}
                 placeholder="เช่น อะไหนเทรดดิ้ง"
@@ -597,7 +597,7 @@ function ProductFormModal({ product, onClose }: ProductFormModalProps) {
                 <label className="block text-xs font-medium text-[#878681] mb-1.5">ราคาทุน (฿)</label>
                 <input
                   type="number" min="0" step="0.01"
-                  className="w-full h-10 bg-[#F7F5F2] rounded-xl px-4 text-sm text-[#2D2D2D] font-mono focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15"
+                  className="w-full h-10 bg-[#F7F5F2] rounded-xl px-4 text-sm font-semibold text-[#2D2D2D] font-mono focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15"
                   value={form.costPrice}
                   onChange={set('costPrice')}
                 />
@@ -606,7 +606,7 @@ function ProductFormModal({ product, onClose }: ProductFormModalProps) {
                 <label className="block text-xs font-medium text-[#878681] mb-1.5">ราคาขาย (฿)</label>
                 <input
                   type="number" min="0" step="0.01"
-                  className="w-full h-10 bg-[#F7F5F2] rounded-xl px-4 text-sm text-[#2D2D2D] font-mono focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15"
+                  className="w-full h-10 bg-[#F7F5F2] rounded-xl px-4 text-sm font-semibold text-[#2D2D2D] font-mono focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15"
                   value={form.sellingPrice}
                   onChange={set('sellingPrice')}
                 />
@@ -616,7 +616,7 @@ function ProductFormModal({ product, onClose }: ProductFormModalProps) {
                   <label className="block text-xs font-medium text-[#878681] mb-1.5">สต็อก (ชิ้น)</label>
                   <input
                     type="number" min="0"
-                    className="w-full h-10 bg-[#F7F5F2] rounded-xl px-4 text-sm text-[#2D2D2D] font-mono focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15"
+                    className="w-full h-10 bg-[#F7F5F2] rounded-xl px-4 text-sm font-semibold text-[#2D2D2D] font-mono focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15"
                     value={form.stockQuantity}
                     onChange={set('stockQuantity')}
                   />
