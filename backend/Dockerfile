@@ -7,6 +7,7 @@ RUN npm ci --omit=optional
 COPY tsconfig.json ./
 COPY prisma ./prisma
 COPY src ./src
+# migration script stays in prisma/ and is available in the runner image too
 
 RUN npx prisma generate
 RUN npm run build
@@ -24,6 +25,7 @@ RUN npm ci --omit=dev --omit=optional
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/prisma ./prisma
 
 EXPOSE 3001
 
