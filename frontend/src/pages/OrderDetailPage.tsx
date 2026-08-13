@@ -189,18 +189,6 @@ export default function OrderDetailPage() {
     markQuotedMutation.isPending ||
     payMutation.isPending;
 
-  if (orderLoading) {
-    return (
-      <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (orderFailed || !order) {
-    return <div className="text-center py-16 text-destructive">ไม่พบออเดอร์</div>;
-  }
-
   // Auto-open receipt PDF dialog when navigated from checkout with ?receipt=1
   useEffect(() => {
     if (order && searchParams.get('receipt') === '1' && order.status === 'Paid') {
@@ -214,6 +202,18 @@ export default function OrderDetailPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order?.id, order?.status]);
+
+  if (orderLoading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (orderFailed || !order) {
+    return <div className="text-center py-16 text-destructive">ไม่พบออเดอร์</div>;
+  }
 
   const canEdit = order.status === 'Draft' || order.status === 'Quoted';
   const isEditable = canEdit && editMode;
