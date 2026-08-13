@@ -136,11 +136,17 @@ export function TintingModal({ open, onClose, vehicleBrand, vehicleModel }: Tint
   const cutBrandDropRef = useRef<HTMLDivElement>(null);
 
   // ── Panel mode state ─────────────────────────────────────────────────────────
-  const [panelEnabled, setPanelEnabled] = useState<Record<PanelKey, boolean>>({ front: false, rear: false, side: false });
-  const [panelPrice, setPanelPrice]     = useState<Record<PanelKey, string>>({ front: '', rear: '', side: '' });
-  const [panelBrand, setPanelBrand]     = useState<Record<PanelKey, string>>({ front: '', rear: '', side: '' });
-  const [panelTech, setPanelTech]       = useState('');
-  const [panelError, setPanelError]     = useState('');
+  type PanelState = { enabled: boolean; price: string; brand: string };
+  const initPanel = (): Record<PanelKey, PanelState> => ({
+    front: { enabled: false, price: '', brand: '' },
+    rear:  { enabled: false, price: '', brand: '' },
+    side:  { enabled: false, price: '', brand: '' },
+  });
+  const [panels, setPanels] = useState<Record<PanelKey, PanelState>>(initPanel);
+  const [panelTech, setPanelTech] = useState('');
+  const [panelError, setPanelError] = useState('');
+  const setPanel = (key: PanelKey, patch: Partial<PanelState>) =>
+    setPanels((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
 
   // Computed values for cut mode
   const cutW = parseFloat(cutWidth) || 0;
@@ -172,27 +178,27 @@ export function TintingModal({ open, onClose, vehicleBrand, vehicleModel }: Tint
     setBrand(''); setShowBrandDrop(false); setPrice(''); setError('');
     setCutWidth(''); setCutLength(''); setCutBrand(''); setShowCutBrandDrop(false);
     setCutPricePerSqFt(''); setCutLabel(''); setCutTechnician(''); setCutError('');
-    setPanelEnabled({ front: false, rear: false, side: false });
-    setPanelPrice({ front: '', rear: '', side: '' });
-    setPanelBrand({ front: '', rear: '', side: '' });
+    setPanels(initPanel());
     setPanelTech(''); setPanelError('');
   };
 
   // ── Panel submit ─────────────────────────────────────────────────────────────
 
   const handleAddPanels = () => {
-    const selected = PANELS.filter((p) => panelEnabled[p.key] && parseFloat(panelPrice[p.key]) > 0);
+    const selected = PANELS.filter((p) => panels[p.key].enabled && parseFloat(panels[p.key].price) > 0);
     if (selected.length === 0) {
       setPanelError('กรุณาเลือกอย่างน้อย 1 บานพร้อมระบุราคา');
       return;
     }
     setPanelError('');
+    const ts = Date.now();
     selected.forEach(({ key, label }) => {
-      const priceNum = parseFloat(panelPrice[key]);
-      const brandPart = panelBrand[key] ? ` ${panelBrand[key]}` : '';
+      const { price: rawPrice, brand: rawBrand } = panels[key];
+      const priceNum = parseFloat(rawPrice);
+      const brandPart = rawBrand ? ` ${rawBrand}` : '';
       const vehiclePart = vehicleDisplay ? ` — ${vehicleDisplay}` : '';
       addItem({
-        id: `TINT_PANEL_${key}_${Date.now()}`,
+        id: `TINT_PANEL_${key}_${ts}`,
         sku: 'TINT-PANEL',
         name: `ฟิล์มกรองแสง${brandPart} ${label}${vehiclePart}`,
         category: ProductCategory.Tint,
@@ -330,38 +336,35 @@ export function TintingModal({ open, onClose, vehicleBrand, vehicleModel }: Tint
                   </div>
                 )}
 
-                {PANELS.map(({ key, label, hint }) => (
-                  <div key={key} className={`border-2 rounded-2xl transition-all ${panelEnabled[key] ? 'border-[#3B3A36] bg-[#FDFCFA]' : 'border-[#E8E4DF] bg-[#F7F5F2]'}`}>
-                    {/* Panel toggle header */}
-                    <button
-                      type="button"
-                      onClick={() => setPanelEnabled((prev) => ({ ...prev, [key]: !prev[key] }))}
-                      className="w-full flex items-center gap-3 px-4 py-3"
-                    >
-                      <div className={`h-5 w-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${panelEnabled[key] ? 'bg-[#3B3A36] border-[#3B3A36]' : 'border-[#C0BEBA]'}`}>
-                        {panelEnabled[key] && <span className="text-white text-xs font-bold">✓</span>}
-                      </div>
-                      <div className="text-left">
-                        <p className={`text-sm font-semibold ${panelEnabled[key] ? 'text-[#2D2D2D]' : 'text-[#878681]'}`}>{label}</p>
-                        <p className="text-xs text-[#C0BEBA]">{hint}</p>
-                      </div>
-                      {panelEnabled[key] && panelPrice[key] && (
-                        <span className="ml-auto text-sm font-mono font-bold text-[#3B3A36]">
-                          {formatCurrency(parseFloat(panelPrice[key]) || 0)}
-                        </span>
-                      )}
-                    </button>
-
-                    {/* Expanded fields */}
-                    {panelEnabled[key] && (
-                      <div className="px-4 pb-4 space-y-2.5">
-                        <div className="grid grid-cols-2 gap-2">
-                          {/* Brand dropdown */}
+                {PANELS.map(({ key, label, hint }) => {
+                  const panel = panels[key];
+                  return (
+                    <div key={key} className={`border-2 rounded-2xl transition-all ${panel.enabled ? 'border-[#3B3A36] bg-[#FDFCFA]' : 'border-[#E8E4DF] bg-[#F7F5F2]'}`}>
+                      <button
+                        type="button"
+                        onClick={() => setPanel(key, { enabled: !panel.enabled })}
+                        className="w-full flex items-center gap-3 px-4 py-3"
+                      >
+                        <div className={`h-5 w-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${panel.enabled ? 'bg-[#3B3A36] border-[#3B3A36]' : 'border-[#C0BEBA]'}`}>
+                          {panel.enabled && <span className="text-white text-xs font-bold">✓</span>}
+                        </div>
+                        <div className="text-left">
+                          <p className={`text-sm font-semibold ${panel.enabled ? 'text-[#2D2D2D]' : 'text-[#878681]'}`}>{label}</p>
+                          <p className="text-xs text-[#C0BEBA]">{hint}</p>
+                        </div>
+                        {panel.enabled && panel.price && (
+                          <span className="ml-auto text-sm font-mono font-bold text-[#3B3A36]">
+                            {formatCurrency(parseFloat(panel.price) || 0)}
+                          </span>
+                        )}
+                      </button>
+                      {panel.enabled && (
+                        <div className="px-4 pb-4 grid grid-cols-2 gap-2">
                           <div>
                             <label className="block text-xs text-[#878681] mb-1">ยี่ห้อ</label>
                             <select
-                              value={panelBrand[key]}
-                              onChange={(e) => setPanelBrand((prev) => ({ ...prev, [key]: e.target.value }))}
+                              value={panel.brand}
+                              onChange={(e) => setPanel(key, { brand: e.target.value })}
                               className="w-full bg-[#F0EDE8] border-0 rounded-xl px-3 py-2 text-sm text-[#2D2D2D] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all"
                             >
                               <option value="">ไม่ระบุ</option>
@@ -370,7 +373,6 @@ export function TintingModal({ open, onClose, vehicleBrand, vehicleModel }: Tint
                               ))}
                             </select>
                           </div>
-                          {/* Price input */}
                           <div>
                             <label className="block text-xs text-[#878681] mb-1">ราคา (บาท) *</label>
                             <input
@@ -378,24 +380,23 @@ export function TintingModal({ open, onClose, vehicleBrand, vehicleModel }: Tint
                               min="0"
                               step="100"
                               inputMode="numeric"
-                              value={panelPrice[key]}
-                              onChange={(e) => setPanelPrice((prev) => ({ ...prev, [key]: e.target.value }))}
+                              value={panel.price}
+                              onChange={(e) => setPanel(key, { price: e.target.value })}
                               placeholder="0"
                               className="w-full bg-[#F0EDE8] border-0 rounded-xl px-3 py-2 text-sm font-mono text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all"
                             />
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                      )}
+                    </div>
+                  );
+                })}
 
-                {/* Total preview */}
-                {PANELS.some((p) => panelEnabled[p.key] && parseFloat(panelPrice[p.key]) > 0) && (
+                {PANELS.some((p) => panels[p.key].enabled && parseFloat(panels[p.key].price) > 0) && (
                   <div className="bg-[#3B3A36] text-white rounded-2xl px-4 py-3 flex items-center justify-between">
                     <span className="text-sm">รวมทุกบาน</span>
                     <span className="font-mono font-black text-lg tabular-nums">
-                      {formatCurrency(PANELS.reduce((sum, p) => sum + (panelEnabled[p.key] ? parseFloat(panelPrice[p.key]) || 0 : 0), 0))}
+                      {formatCurrency(PANELS.reduce((sum, p) => sum + (panels[p.key].enabled ? parseFloat(panels[p.key].price) || 0 : 0), 0))}
                     </span>
                   </div>
                 )}

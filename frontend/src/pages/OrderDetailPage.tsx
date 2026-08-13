@@ -82,6 +82,7 @@ export default function OrderDetailPage() {
   const { docRef: quotationRef, exportPDF: exportQuotationPDF, isExporting: isExportingQuotation } = usePDFExport();
   const { docRef: invoiceRef, exportPDF: exportInvoicePDF, isExporting: isExportingInvoice } = usePDFExport();
 
+  const [editMode, setEditMode] = useState(false);
   const [showAddItem, setShowAddItem] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [showPayConfirm, setShowPayConfirm] = useState(false);
@@ -214,7 +215,8 @@ export default function OrderDetailPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order?.id, order?.status]);
 
-  const isEditable = order.status === 'Draft' || order.status === 'Quoted';
+  const canEdit = order.status === 'Draft' || order.status === 'Quoted';
+  const isEditable = canEdit && editMode;
   const hasItems = (order.orderItems?.length ?? 0) > 0;
   const isCreditEligible = !!(order.vehicle?.customer?.name && order.vehicle?.customer?.phone);
 
@@ -258,6 +260,17 @@ export default function OrderDetailPage() {
           <Badge variant={STATUS_BADGE[order.status]}>{STATUS_LABELS[order.status]}</Badge>
 
           <div className="ml-auto flex gap-2 flex-wrap">
+            {canEdit && (
+              <Button
+                variant={editMode ? 'default' : 'outline'}
+                onClick={() => { setEditMode((v) => !v); setShowAddItem(false); }}
+                disabled={isAnyMutating}
+                className={editMode ? 'bg-amber-600 hover:bg-amber-700 text-white border-amber-600' : ''}
+              >
+                <Plus className={`h-4 w-4 mr-2 transition-transform ${editMode ? 'rotate-45' : ''}`} />
+                {editMode ? 'เสร็จแก้ไข' : 'แก้ไขรายการ'}
+              </Button>
+            )}
             {order.status === 'Draft' && hasItems && (
               <Button
                 variant="outline"
@@ -270,7 +283,7 @@ export default function OrderDetailPage() {
                 ออกใบเสนอราคา
               </Button>
             )}
-            {isEditable && hasItems && (
+            {canEdit && hasItems && (
               <Button onClick={() => setShowPayConfirm(true)} disabled={isAnyMutating}>
                 <CreditCard className="h-4 w-4 mr-2" />
                 ชำระเงิน

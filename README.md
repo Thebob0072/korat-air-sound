@@ -1,331 +1,175 @@
 # Korat Air & Sound — ระบบ POS ร้านประดับยนต์
 
-ระบบจัดการร้านประดับยนต์ครบวงจร สำหรับร้าน **Korat Air & Sound** รองรับการออกบิล จัดการออเดอร์ ลูกค้า สต็อกสินค้า และสรุปยอดขาย
+ระบบจัดการร้านประดับยนต์ครบวงจร รองรับการออกบิล จัดการออเดอร์ ลูกค้า สต็อกสินค้า และสรุปยอดขาย
 
 ---
 
-## 🌐 Production URLs
+## Production URLs
 
 | บริการ | URL |
 |--------|-----|
-| **Frontend (Custom Domain)** | https://audithebob.art |
-| **Frontend (Cloud Run)** | https://korat-frontend-yovupdn6ma-as.a.run.app |
-| **Backend API** | https://korat-backend-yovupdn6ma-as.a.run.app/api |
-| **Swagger Docs** | https://korat-backend-yovupdn6ma-as.a.run.app/api-docs |
+| **เว็บไซต์** | https://audithebob.art |
+| **Backend API** | https://korat-backend-171089417301.asia-southeast1.run.app/api |
+| **Swagger Docs** | https://korat-backend-171089417301.asia-southeast1.run.app/api-docs |
 
 ---
 
-## 🧱 Tech Stack
+## Tech Stack
 
-### Frontend
-- **React 18** + TypeScript + Vite 5
-- **Tailwind CSS v3** — color palette: `#3B3A36` (charcoal), `#ECEAE6` (sand), `#F0EDE8` (warm white)
-- **Fonts**: Sarabun (Thai) + Inter (Latin) + IBM Plex Mono (numbers/mono)
-- **TanStack Query v5** — server state, caching
-- **Zustand 4.5** — cart store with localStorage persistence
-- **React Router v6** — routing
-- **Radix UI** — accessible dialog primitives
-- **html2canvas + jsPDF** — PDF export (ใบเสร็จ/ใบเสนอราคา)
-- **Lucide React** — icons
-
-### Backend
-- **Node.js + Express** + TypeScript
-- **Prisma ORM 5.22** with MySQL provider
-- **Zod** — request validation
-- **Swagger UI / JSDoc** — API documentation at `/api-docs`
-- **Vitest** — unit tests (`npm test`)
-- Port: `3001`
-
-### Database
-- **Google Cloud SQL MySQL 8.4.10**
-- Host: `34.158.34.228:3306`
-- DB: `korat_air_sound`
-
-### Infrastructure
-- **Google Cloud Run** (asia-southeast1) — backend + frontend containers
-- **Google Artifact Registry** — Docker images (`korat-repo`)
-- **GCP Project**: `guidetour-349021`
-- **Custom domain**: `audithebob.art` → Cloud Run frontend
+- **Frontend**: React 18, TypeScript, Vite 5, Tailwind CSS v3, TanStack Query v5, Zustand, React Router v6, Radix UI
+- **Backend**: Node.js, Express, TypeScript, Prisma ORM, MySQL, Zod, Swagger
+- **Database**: Google Cloud SQL MySQL 8 — IP `34.158.34.228`, DB `korat_air_sound`
+- **Infra**: Google Cloud Run (asia-southeast1), Artifact Registry, GCP Project `guidetour-349021`
 
 ---
 
-## ✨ Features
+## Local Development
 
-### POS Dashboard (`/`)
-- ค้นหาทะเบียนรถลูกค้า พร้อม autocomplete
-- เพิ่มรายการตามหมวดหมู่:
-
-| หมวดหมู่ | วิธีทำงาน |
-|---|---|
-| **ระบบแอร์** (AirCon) | เลือกจาก catalog → สร้างใหม่ inline (ราคาทุน + ราคาขาย + stock) |
-| **ฟิล์มกรองแสง** (Tint) | เลือกประเภทรถ × ยี่ห้อฟิล์ม → ราคา auto-fill จาก price table |
-| **กระจกรถยนต์** (Glass) | เลือกตำแหน่ง × รุ่น/ปีรถ → ราคา auto-fill แก้ไขได้ |
-| **เครื่องเสียง** (Sound) | เลือกจาก catalog / สร้างใหม่ พร้อม ยี่ห้อ + ปีรุ่น |
-| **ค่าบริการ** (ServiceFee) | รายการพิเศษ/ค่าแรง ไม่หัก stock |
-- ระบุช่างผู้รับผิดชอบต่อรายการ
-- ส่วนลดบิล (discount) และรายการค่าบริการเพิ่มเติม
-- Checkout → ชำระเงิน → พิมพ์ใบเสร็จ PDF
-
-### Orders Management (`/orders`)
-- รายการออเดอร์พร้อม pagination + filter สถานะ
-- ดูรายละเอียดออเดอร์ (`/orders/:id`)
-- เพิ่ม/ลบรายการในออเดอร์ Draft
-- State machine: `Draft → Quoted → Paid` หรือ `→ Cancelled`
-- ลบออเดอร์ได้เฉพาะสถานะ Draft
-- พิมพ์ใบเสนอราคา / ใบเสร็จ (PDF)
-
-### Products Management (`/products`)
-- จัดการสินค้าตามหมวดหมู่
-- ฟิลด์: ชื่อ, SKU, หมวดหมู่, ยี่ห้อ, ราคาทุน, ราคาขาย, stock, supplier
-
-### Customers Management (`/customers`)
-- ทะเบียนลูกค้า + รถ (1 ลูกค้า หลายคัน)
-- ค้นหาตามชื่อ / เบอร์โทร / ทะเบียนรถ
-- สถิติต่อลูกค้า: จำนวนรถ, ออเดอร์, ยอดรวม
-
-### Reports / Sales Summary (`/reports`)
-- ยอดขาย: วันนี้ / เดือนนี้ / ปีนี้ / ทั้งหมด
-- กราฟยอดขายย้อนหลัง (รายวัน/รายเดือน/12เดือน/24เดือน/3ปี)
-- ยอดขายแยกหมวดหมู่ พร้อม progress bar
-
----
-
-## 🗃️ Database Schema
-
-```prisma
-model Customer {
-  id        String    @id @default(uuid())
-  name      String
-  phone     String    @unique
-  vehicles  Vehicle[]
-}
-
-model Vehicle {
-  id           String   @id @default(uuid())
-  licensePlate String   @unique
-  brand        String
-  model        String
-  customerId   String
-  orders       Order[]
-}
-
-model Product {
-  id            String          @id @default(uuid())
-  sku           String          @unique
-  name          String
-  category      ProductCategory   // AirCon | Tint | Glass | Sound | ServiceFee
-  costPrice     Decimal           // ราคาทุน
-  sellingPrice  Decimal           // ราคาขาย
-  stockQuantity Int @default(0)
-  supplier      String?
-  brand         String?
-  squareFeet    Decimal?          // สำหรับสินค้าที่วัดเป็นตร.ฟุต (ฟิล์ม)
-  modelYear     Int?
-}
-
-model Order {
-  id          String      @id @default(uuid())
-  orderNumber String      @unique    // KAS-YYYYMMDD-XXXX
-  vehicleId   String
-  status      OrderStatus @default(Draft)  // Draft | Quoted | Paid | Cancelled
-  totalAmount Decimal
-}
-
-model OrderItem {
-  id              String
-  orderId         String
-  productId       String?   // null = custom-label item (ฟิล์ม/กระจก/ค่าบริการ)
-  customLabel     String?   // ชื่อรายการที่ไม่อยู่ใน catalog
-  technicianName  String?   // ช่างผู้รับผิดชอบ
-  quantity        Int
-  unitPrice       Decimal
-  subtotalPrice   Decimal
-}
-```
-
-> **หมายเหตุสำคัญ**: รายการที่ไม่มี `productId` (ฟิล์ม, กระจก, ค่าบริการพิเศษ) จะไม่หัก stock ในระบบ
-
----
-
-## 🚀 Local Development
-
-### Prerequisites
-- Node.js 20+
-- IP ของเครื่องต้อง whitelist ใน Cloud SQL Authorized Networks
-
-### 1. Clone & Install
+**ต้องการ**: Node.js 20+, IP เครื่องต้อง whitelist ใน Cloud SQL
 
 ```bash
-git clone <repo-url>
+git clone <repo>
 cd korat-air-sound
 
-cd backend && npm install
-cd ../frontend && npm install
-```
-
-### 2. Environment Setup
-
-**backend/.env**
-```
-DATABASE_URL="mysql://root:P%40ssw0rd@34.158.34.228:3306/korat_air_sound"
-PORT=3001
-NODE_ENV=development
-```
-
-**frontend (development ใช้ localhost, ไม่ต้องสร้าง .env)**
-```
-# frontend/.env.production (สำหรับ build production)
-VITE_API_URL=https://korat-backend-yovupdn6ma-as.a.run.app/api
-```
-
-### 3. Run Manually
-
-```bash
-# Terminal 1 — Backend
-cd backend && npx prisma generate && npm run dev
-
-# Terminal 2 — Frontend
-cd frontend && npm run dev
-# → http://localhost:5173
-```
-
-### 4. Tests
-
-```bash
-cd backend && npm test
-```
-
-### 5. Database (Prisma)
-
-```bash
+# Backend
 cd backend
-npx prisma generate          # สร้าง Prisma client
-npx prisma db push           # sync schema → dev (ไม่มี migration)
-npx prisma migrate deploy    # apply migrations → production
-npx ts-node prisma/seed.ts   # seed ข้อมูลตัวอย่าง
-npx prisma studio            # GUI browser สำหรับ DB
+npm install
+# สร้าง backend/.env
+echo 'DATABASE_URL="mysql://root:P%40ssw0rd@34.158.34.228:3306/korat_air_sound"' > .env
+echo 'PORT=3001' >> .env
+npx prisma generate
+npm run dev          # → http://localhost:3001
+
+# Frontend (terminal ใหม่)
+cd ../frontend
+npm install
+npm run dev          # → http://localhost:5173
 ```
 
-### ⚠️ Cloud SQL IP Whitelist
-
-ถ้า backend connect DB ไม่ได้จาก local ให้ whitelist IP:
+ถ้า backend connect DB ไม่ได้ ต้อง whitelist IP ใน Cloud SQL:
 ```bash
 gcloud sql instances patch korat-air-sound \
-  --authorized-networks="YOUR_IP/32"
+  --authorized-networks="$(curl -s ifconfig.me)/32" \
+  --project=guidetour-349021
 ```
 
 ---
 
-## 📦 Deployment (Google Cloud Run)
+## Deploy to Production
 
-### Backend
+**ต้องการ**: Docker Desktop, gcloud CLI, auth ด้วย `gcloud auth login`
 
-```bash
-cd backend
-docker build --platform linux/amd64 \
-  -t asia-southeast1-docker.pkg.dev/guidetour-349021/korat-repo/backend:latest .
-docker push asia-southeast1-docker.pkg.dev/guidetour-349021/korat-repo/backend:latest
-
-gcloud run deploy korat-backend \
-  --image asia-southeast1-docker.pkg.dev/guidetour-349021/korat-repo/backend:latest \
-  --region asia-southeast1 --platform managed --allow-unauthenticated \
-  --port 3001 \
-  --set-env-vars "DATABASE_URL=mysql://root:P%40ssw0rd@34.158.34.228:3306/korat_air_sound,NODE_ENV=production" \
-  --quiet
-```
-
-### Frontend
+### ขั้นตอนทั้งหมด (ทำทีเดียว)
 
 ```bash
+# 1. Build frontend
 cd frontend
 npm run build
 
-docker build --platform linux/amd64 \
-  -t asia-southeast1-docker.pkg.dev/guidetour-349021/korat-repo/frontend:latest .
-docker push asia-southeast1-docker.pkg.dev/guidetour-349021/korat-repo/frontend:latest
+# 2. Docker auth กับ Artifact Registry
+gcloud auth print-access-token \
+  | docker login -u oauth2accesstoken --password-stdin \
+    asia-southeast1-docker.pkg.dev
 
+# 3. Build + push images (ต้อง --platform linux/amd64 เสมอ)
+docker buildx build \
+  --platform linux/amd64 --push \
+  -t asia-southeast1-docker.pkg.dev/guidetour-349021/korat-repo/korat-frontend:latest \
+  ./frontend
+
+docker buildx build \
+  --platform linux/amd64 --push \
+  -t asia-southeast1-docker.pkg.dev/guidetour-349021/korat-repo/korat-backend:latest \
+  ./backend
+
+# 4. Deploy ทั้งคู่
 gcloud run deploy korat-frontend \
-  --image asia-southeast1-docker.pkg.dev/guidetour-349021/korat-repo/frontend:latest \
-  --region asia-southeast1 --platform managed --allow-unauthenticated \
-  --port 8080 --quiet
+  --image asia-southeast1-docker.pkg.dev/guidetour-349021/korat-repo/korat-frontend:latest \
+  --region asia-southeast1 --platform managed --allow-unauthenticated --quiet
+
+gcloud run deploy korat-backend \
+  --image asia-southeast1-docker.pkg.dev/guidetour-349021/korat-repo/korat-backend:latest \
+  --region asia-southeast1 --platform managed --allow-unauthenticated --quiet
 ```
+
+หลัง deploy แล้ว `audithebob.art` จะ serve เวอร์ชันใหม่ทันที (domain mapping เชื่อมอยู่แล้ว)
+
+### หมายเหตุสำคัญ
+
+- **`--platform linux/amd64` บังคับ** — Mac (Apple Silicon) build multi-arch โดย default ซึ่ง Cloud Run ไม่รับ
+- frontend Dockerfile แค่ `COPY dist` ดังนั้นต้อง `npm run build` ก่อน docker build เสมอ
+- ถ้า push ไม่ได้ให้ re-login docker ด้วย gcloud token (ข้อ 2)
 
 ---
 
-## 📁 Project Structure
+## Bluetooth Thermal Printer (58mm)
+
+ฟีเจอร์พิมพ์ใบเสร็จผ่าน Bluetooth ใช้ **Web Bluetooth API** + **ESC/POS** โดยตรงจากเบราว์เซอร์
+
+### เครื่องพิมพ์ที่รองรับ
+
+เครื่องพิมพ์ความร้อน 58mm ที่ใช้ Bluetooth LE (BLE) ทั่วไปในไทย เช่น:
+- **Xprinter XP-P300** / XP-P3
+- **GOOJPRT PT-210** / PT-280
+- **EPSON TM-P20** (BLE รุ่น)
+- เครื่องจีนทั่วไปที่ขายใน Lazada/Shopee (ทดสอบก่อนซื้อ)
+
+### วิธีใช้งาน
+
+1. เปิดหน้า Order detail ที่ต้องการพิมพ์
+2. กดปุ่ม **"เชื่อมต่อเครื่องพิมพ์"** (ไอคอน Bluetooth)
+3. เบราว์เซอร์จะแสดง dialog เลือกอุปกรณ์ — เลือกเครื่องพิมพ์ของคุณ
+4. เมื่อเชื่อมต่อแล้ว ปุ่มจะเปลี่ยนเป็น **"พิมพ์"** พร้อมชื่ออุปกรณ์
+5. กด **"พิมพ์"** — ใบเสร็จจะออกทันที
+
+### ข้อกำหนด
+
+- ต้องใช้ **Chrome หรือ Edge** (Firefox ไม่รองรับ Web Bluetooth)
+- ต้องเข้าผ่าน **HTTPS** (audithebob.art) หรือ localhost เท่านั้น
+- จับคู่ Bluetooth ที่ระบบปฏิบัติการก่อน (Settings → Bluetooth → Pair) แล้วค่อยกดเชื่อมต่อในเว็บ
+
+### ถ้าเชื่อมต่อแล้วพิมพ์ไม่ออก
+
+เครื่องพิมพ์บางรุ่นใช้ BLE service UUID ที่ต่างกัน hook ลอง 4 profiles อัตโนมัติ ถ้ายังไม่ได้ให้:
+1. เปิด Chrome DevTools → Console ดู error ว่า service UUID ไหนหาไม่เจอ
+2. ถ้าเครื่องพิมพ์เป็นรุ่นใหม่อาจต้องการ pairing PIN — กรอกที่ระบบปฏิบัติการก่อน
+
+---
+
+## Database Schema (สรุป)
+
+```prisma
+Customer  — id, name?, phone?
+Vehicle   — id, licensePlate, brand?, model?, customerId?
+Product   — id, sku, name, category, costPrice, sellingPrice, stockQuantity
+Order     — id, orderNumber (KAS-YYYYMMDD-XXXX), vehicleId, status, totalAmount
+OrderItem — orderId, productId?, customLabel?, quantity, unitPrice, technicianName?
+```
+
+สถานะออเดอร์: `Draft → Quoted → Paid` หรือ `→ Cancelled`
+
+รายการที่ไม่มี `productId` (ฟิล์ม, กระจก, ค่าบริการพิเศษ) ไม่หัก stock
+
+---
+
+## Project Structure
 
 ```
 korat-air-sound/
-├── README.md
-├── docker-compose.yml
 ├── backend/
 │   ├── Dockerfile
-│   ├── package.json
-│   ├── vitest.config.ts
-│   ├── prisma/
-│   │   ├── schema.prisma
-│   │   ├── seed.ts
-│   │   └── migrations/
+│   ├── prisma/schema.prisma
 │   └── src/
-│       ├── index.ts              # Express server, CORS, Swagger
-│       ├── lib/
-│       │   └── swagger.ts
-│       ├── middleware/
-│       │   └── errorHandler.ts
-│       ├── routes/
-│       │   ├── index.ts
-│       │   ├── customers.ts
-│       │   ├── orders.ts         # state machine guard, DELETE endpoint
-│       │   ├── products.ts
-│       │   └── vehicles.ts
-│       ├── services/
-│       │   └── orderService.ts   # processPayment, stock deduction
-│       └── __tests__/
-│           └── orderService.test.ts
+│       ├── index.ts
+│       ├── routes/        (customers, orders, products, vehicles)
+│       └── services/orderService.ts
 └── frontend/
-    ├── Dockerfile
+    ├── Dockerfile         (nginx:alpine + COPY dist)
     ├── nginx.conf
-    ├── index.html
     └── src/
-        ├── index.css             # Sarabun + IBM Plex Mono fonts
-        ├── components/
-        │   ├── Navbar.tsx        # LiveClock, brand header
-        │   ├── AirConModal.tsx   # catalog + create-inline
-        │   ├── TintingModal.tsx  # price table: car-type × brand
-        │   ├── GlassModal.tsx    # position + car model/year
-        │   ├── SoundModal.tsx    # catalog + brand/year
-        │   ├── OtherItemModal.tsx
-        │   ├── CheckoutModal.tsx
-        │   └── VehicleRegistrationModal.tsx
-        ├── pages/
-        │   ├── POSDashboard.tsx  # category buttons with colors
-        │   ├── OrdersPage.tsx
-        │   ├── OrderDetailPage.tsx
-        │   ├── ProductsPage.tsx
-        │   ├── CustomersPage.tsx
-        │   └── ReportsPage.tsx
-        ├── store/
-        │   └── POSCartStore.ts   # Zustand + localStorage
-        ├── lib/
-        │   ├── api.ts
-        │   └── utils.ts
-        └── types/index.ts
+        ├── components/    (modals, PDFDocument, CheckoutModal)
+        ├── hooks/         (usePDFExport, useBluetoothPrinter)
+        ├── pages/         (POSDashboard, OrderDetailPage, ...)
+        ├── store/         (POSCartStore — Zustand)
+        └── lib/api.ts
 ```
-
----
-
-## 🔒 CORS Policy
-
-Backend รองรับ origin:
-- `http://localhost:5173` (Vite dev)
-- `http://localhost:4173` (Vite preview)
-- `https://korat-frontend-yovupdn6ma-as.a.run.app`
-- `https://korat-frontend-171089417301.asia-southeast1.run.app`
-- `https://audithebob.art`
-- `CORS_ORIGIN` env variable (override)
-
----
-
-## 📝 License
-
-Private — ร้าน Korat Air & Sound
