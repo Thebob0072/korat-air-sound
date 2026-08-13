@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { flushSync } from 'react-dom';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft, Printer, Plus, Trash2, CreditCard, Loader2, Search, FileDown } from 'lucide-react';
+import { ChevronLeft, Printer, Plus, Trash2, CreditCard, Loader2, Search, FileDown, Bluetooth, BluetoothOff } from 'lucide-react';
 import { PDFDocument } from '@/components/PDFDocument';
 import { usePDFExport } from '@/hooks/usePDFExport';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,7 @@ import {
   processPayment,
 } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { usePrinter } from '@/hooks/usePrinter';
+import { useBluetoothPrinter } from '@/hooks/useBluetoothPrinter';
 import type { Order, Product, OrderStatus } from '@/types';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -76,7 +76,8 @@ export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { print, isPending: isPrinting } = usePrinter();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const btPrinter = useBluetoothPrinter();
   const { docRef: receiptRef, exportPDF: exportReceiptPDF, isExporting: isExportingReceipt } = usePDFExport();
   const { docRef: quotationRef, exportPDF: exportQuotationPDF, isExporting: isExportingQuotation } = usePDFExport();
   const { docRef: invoiceRef, exportPDF: exportInvoicePDF, isExporting: isExportingInvoice } = usePDFExport();
@@ -117,14 +118,25 @@ export default function OrderDetailPage() {
 
   // ── Mutations ─────────────────────────────────────────────────────────────
 
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
   const addItemMutation = useMutation({
-    mutationFn: ({ product, quantity, technicianName }: { product: Product; quantity: number; technicianName?: string }) =>
-      addOrderItem(id!, {
-        productId: product.id,
+    mutationFn: ({ product, quantity, technicianName, customLabel, unitPrice }: {
+      product?: Product;
+      quantity: number;
+      technicianName?: string;
+      customLabel?: string;
+      unitPrice?: number;
+    }) => {
+      const isReal = product && UUID_RE.test(product.id);
+      return addOrderItem(id!, {
+        productId: isReal ? product!.id : undefined,
+        customLabel: customLabel ?? (isReal ? undefined : product?.name),
         quantity,
         technicianName,
-        unitPrice: Number(product.sellingPrice),
-      }),
+        unitPrice: Number(unitPrice ?? product?.sellingPrice ?? 0),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['order', id] });
       setShowAddItem(false);
@@ -187,6 +199,20 @@ export default function OrderDetailPage() {
   if (orderFailed || !order) {
     return <div className="text-center py-16 text-destructive">ไม่พบออเดอร์</div>;
   }
+
+  // Auto-open receipt PDF dialog when navigated from checkout with ?receipt=1
+  useEffect(() => {
+    if (order && searchParams.get('receipt') === '1' && order.status === 'Paid') {
+      setSearchParams({}, { replace: true });
+      setPdfOptionsFor('receipt');
+      setIsCorp(false);
+      setCorpName('');
+      setCorpAddress('');
+      setCorpPhone('');
+      setShowPDFOptions(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order?.id, order?.status]);
 
   const isEditable = order.status === 'Draft' || order.status === 'Quoted';
   const hasItems = (order.orderItems?.length ?? 0) > 0;
@@ -292,18 +318,48 @@ export default function OrderDetailPage() {
               </Button>
             )}
             {(order.status === 'Quoted' || order.status === 'Paid') && (
-              <Button
-                variant="outline"
-                onClick={() => print(order)}
-                disabled={isPrinting}
-              >
-                {isPrinting ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Printer className="h-4 w-4 mr-2" />
-                )}
-                เครื่องพิมพ์
-              </Button>
+              btPrinter.isConnected ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-emerald-600 font-medium hidden sm:block">
+                    {btPrinter.deviceName}
+                  </span>
+                  <Button
+                    variant="outline"
+                    onClick={() => btPrinter.print(order)}
+                    disabled={btPrinter.status === 'printing'}
+                    className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                  >
+                    {btPrinter.status === 'printing' ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Printer className="h-4 w-4 mr-2" />
+                    )}
+                    พิมพ์
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={btPrinter.disconnect}
+                    className="text-[#878681] hover:text-red-500 px-2"
+                    title="ตัดการเชื่อมต่อ"
+                  >
+                    <BluetoothOff className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={btPrinter.connect}
+                  disabled={btPrinter.status === 'connecting'}
+                >
+                  {btPrinter.status === 'connecting' ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Bluetooth className="h-4 w-4 mr-2" />
+                  )}
+                  {btPrinter.status === 'connecting' ? 'กำลังเชื่อมต่อ…' : 'เชื่อมต่อเครื่องพิมพ์'}
+                </Button>
+              )
             )}
           </div>
         </div>
@@ -455,6 +511,14 @@ export default function OrderDetailPage() {
             products={products}
             isPending={addItemMutation.isPending}
             onAdd={(product, quantity, technicianName) => addItemMutation.mutate({ product, quantity, technicianName })}
+            onAddCustom={(name, price, technicianName) =>
+              addItemMutation.mutate({
+                customLabel: name,
+                quantity: 1,
+                technicianName,
+                unitPrice: price,
+              })
+            }
             onClose={() => setShowAddItem(false)}
           />
         )}
@@ -640,15 +704,21 @@ interface AddItemModalProps {
   products: Product[];
   isPending: boolean;
   onAdd: (product: Product, quantity: number, technicianName?: string) => void;
+  onAddCustom: (name: string, price: number, technicianName?: string) => void;
   onClose: () => void;
 }
 
-function AddItemModal({ products, isPending, onAdd, onClose }: AddItemModalProps) {
+function AddItemModal({ products, isPending, onAdd, onAddCustom, onClose }: AddItemModalProps) {
+  const [tab, setTab] = useState<'product' | 'custom'>('product');
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('');
   const [selected, setSelected] = useState<Product | null>(null);
   const [qty, setQty] = useState(1);
   const [technicianName, setTechnicianName] = useState('');
+  // custom item fields
+  const [customName, setCustomName] = useState('');
+  const [customPrice, setCustomPrice] = useState('');
+  const [customTech, setCustomTech] = useState('');
 
   const CATEGORIES = [
     { value: '', label: 'ทั้งหมด' },
@@ -670,17 +740,94 @@ function AddItemModal({ products, isPending, onAdd, onClose }: AddItemModalProps
     return matchCat && matchSearch;
   });
 
+  const customPriceNum = parseFloat(customPrice) || 0;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-[#FDFCFA] rounded-[28px] shadow-[0_24px_80px_rgb(0,0,0,0.18)] w-full max-w-2xl flex flex-col max-h-[85vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-5 pb-4 shrink-0">
+        <div className="flex items-center justify-between px-6 pt-5 pb-3 shrink-0">
           <div>
-            <h2 className="font-bold text-[#2D2D2D] text-base">เลือกสินค้า / บริการ</h2>
-            <p className="text-xs text-[#878681] mt-0.5">{filtered.length} รายการ</p>
+            <h2 className="font-bold text-[#2D2D2D] text-base">เพิ่มรายการ</h2>
+            {tab === 'product' && <p className="text-xs text-[#878681] mt-0.5">{filtered.length} รายการ</p>}
           </div>
           <button onClick={onClose} className="h-8 w-8 flex items-center justify-center rounded-full text-[#878681] hover:text-[#2D2D2D] hover:bg-[#EAE7E2] transition-all">✕</button>
         </div>
+
+        {/* Tab toggle */}
+        <div className="px-6 pb-3 shrink-0">
+          <div className="flex bg-[#F0EDE8] rounded-2xl p-1">
+            <button type="button" onClick={() => setTab('product')}
+              className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${tab === 'product' ? 'bg-white text-[#2D2D2D] shadow-sm' : 'text-[#878681] hover:text-[#2D2D2D]'}`}>
+              สินค้า / บริการ
+            </button>
+            <button type="button" onClick={() => setTab('custom')}
+              className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${tab === 'custom' ? 'bg-white text-[#2D2D2D] shadow-sm' : 'text-[#878681] hover:text-[#2D2D2D]'}`}>
+              กำหนดเอง
+            </button>
+          </div>
+        </div>
+
+        {/* ── Custom item tab ── */}
+        {tab === 'custom' && (
+          <div className="px-6 pb-6 space-y-4 flex-1">
+            <div>
+              <label className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">ชื่อรายการ *</label>
+              <input
+                type="text"
+                autoFocus
+                value={customName}
+                onChange={(e) => setCustomName(e.target.value)}
+                placeholder="เช่น ค่าแรง, อุปกรณ์เสริม…"
+                className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-4 py-2.5 text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-[#2D2D2D] mb-1.5">ราคา (บาท) *</label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                inputMode="decimal"
+                value={customPrice}
+                onChange={(e) => setCustomPrice(e.target.value)}
+                placeholder="0"
+                className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-4 py-2.5 text-sm font-mono text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all"
+              />
+            </div>
+            <div className="flex items-center gap-2 bg-[#F7F5F2] rounded-2xl px-3 py-2">
+              <span className="text-xs text-[#C0BEBA]">🔧</span>
+              <input
+                type="text"
+                value={customTech}
+                onChange={(e) => setCustomTech(e.target.value)}
+                placeholder="ช่างผู้รับผิดชอบ (ไม่บังคับ)"
+                className="flex-1 bg-transparent text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none"
+              />
+            </div>
+            {customName.trim() && customPriceNum > 0 && (
+              <div className="bg-[#F0EDE8] rounded-2xl px-4 py-3 flex items-center justify-between">
+                <span className="text-sm text-[#2D2D2D] truncate max-w-[65%]">{customName.trim()}</span>
+                <span className="text-base font-bold font-mono text-[#3B3A36]">{formatCurrency(customPriceNum)}</span>
+              </div>
+            )}
+            <button
+              onClick={() => {
+                if (customName.trim() && customPriceNum > 0) {
+                  onAddCustom(customName.trim(), customPriceNum, customTech || undefined);
+                }
+              }}
+              disabled={!customName.trim() || customPriceNum <= 0 || isPending}
+              className="w-full flex items-center justify-center gap-2 bg-[#3B3A36] hover:opacity-90 active:scale-[0.98] disabled:opacity-40 text-white text-sm font-medium rounded-2xl px-5 py-3 transition-all"
+            >
+              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              {customPriceNum > 0 ? `เพิ่มในออเดอร์ ${formatCurrency(customPriceNum)}` : 'เพิ่มในออเดอร์'}
+            </button>
+          </div>
+        )}
+
+        {/* ── Product tab ── */}
+        {tab === 'product' && <>
 
         {/* Search + Category filters */}
         <div className="px-6 pb-4 space-y-3 shrink-0">
@@ -817,6 +964,7 @@ function AddItemModal({ products, isPending, onAdd, onClose }: AddItemModalProps
             </div>
           </div>
         )}
+        </>}
       </div>
     </div>
   );

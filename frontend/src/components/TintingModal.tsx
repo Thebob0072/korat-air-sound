@@ -1,6 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { useState, useRef, useEffect } from 'react';
-import { X, Eye, ChevronDown, Wrench, Ruler } from 'lucide-react';
+import { X, Eye, ChevronDown, Wrench, Ruler, LayoutGrid } from 'lucide-react';
 import { usePOSCartStore } from '@/store/POSCartStore';
 import { formatCurrency } from '@/lib/utils';
 import { ProductCategory } from '@/types';
@@ -98,11 +98,20 @@ const inchesToSqFt = (w: number, h: number) => (w * h) / 144;
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+// ── Panel mode types ─────────────────────────────────────────────────────────
+
+type PanelKey = 'front' | 'rear' | 'side';
+const PANELS: { key: PanelKey; label: string; hint: string }[] = [
+  { key: 'front', label: 'บานหน้า', hint: 'กระจกหน้า' },
+  { key: 'rear',  label: 'บานหลัง', hint: 'กระจกหลัง' },
+  { key: 'side',  label: 'บานข้าง', hint: 'กระจกข้างทุกบาน' },
+];
+
 export function TintingModal({ open, onClose, vehicleBrand, vehicleModel }: TintingModalProps) {
   const vehicleDisplay = [vehicleBrand, vehicleModel].filter(Boolean).join(' ');
   const addItem = usePOSCartStore((s) => s.addItem);
 
-  const [mode, setMode] = useState<'package' | 'cut'>('package');
+  const [mode, setMode] = useState<'package' | 'cut' | 'panel'>('package');
 
   // ── Package mode state ──────────────────────────────────────────────────────
   const [technicianName, setTechnicianName] = useState('');
@@ -125,6 +134,13 @@ export function TintingModal({ open, onClose, vehicleBrand, vehicleModel }: Tint
   const [cutTechnician, setCutTechnician] = useState('');
   const [cutError, setCutError] = useState('');
   const cutBrandDropRef = useRef<HTMLDivElement>(null);
+
+  // ── Panel mode state ─────────────────────────────────────────────────────────
+  const [panelEnabled, setPanelEnabled] = useState<Record<PanelKey, boolean>>({ front: false, rear: false, side: false });
+  const [panelPrice, setPanelPrice]     = useState<Record<PanelKey, string>>({ front: '', rear: '', side: '' });
+  const [panelBrand, setPanelBrand]     = useState<Record<PanelKey, string>>({ front: '', rear: '', side: '' });
+  const [panelTech, setPanelTech]       = useState('');
+  const [panelError, setPanelError]     = useState('');
 
   // Computed values for cut mode
   const cutW = parseFloat(cutWidth) || 0;
@@ -156,6 +172,37 @@ export function TintingModal({ open, onClose, vehicleBrand, vehicleModel }: Tint
     setBrand(''); setShowBrandDrop(false); setPrice(''); setError('');
     setCutWidth(''); setCutLength(''); setCutBrand(''); setShowCutBrandDrop(false);
     setCutPricePerSqFt(''); setCutLabel(''); setCutTechnician(''); setCutError('');
+    setPanelEnabled({ front: false, rear: false, side: false });
+    setPanelPrice({ front: '', rear: '', side: '' });
+    setPanelBrand({ front: '', rear: '', side: '' });
+    setPanelTech(''); setPanelError('');
+  };
+
+  // ── Panel submit ─────────────────────────────────────────────────────────────
+
+  const handleAddPanels = () => {
+    const selected = PANELS.filter((p) => panelEnabled[p.key] && parseFloat(panelPrice[p.key]) > 0);
+    if (selected.length === 0) {
+      setPanelError('กรุณาเลือกอย่างน้อย 1 บานพร้อมระบุราคา');
+      return;
+    }
+    setPanelError('');
+    selected.forEach(({ key, label }) => {
+      const priceNum = parseFloat(panelPrice[key]);
+      const brandPart = panelBrand[key] ? ` ${panelBrand[key]}` : '';
+      const vehiclePart = vehicleDisplay ? ` — ${vehicleDisplay}` : '';
+      addItem({
+        id: `TINT_PANEL_${key}_${Date.now()}`,
+        sku: 'TINT-PANEL',
+        name: `ฟิล์มกรองแสง${brandPart} ${label}${vehiclePart}`,
+        category: ProductCategory.Tint,
+        costPrice: 0,
+        sellingPrice: priceNum,
+        stockQuantity: 9999,
+      }, 1, panelTech || undefined);
+    });
+    reset();
+    onClose();
   };
 
   const handleClose = () => { reset(); onClose(); };
@@ -246,27 +293,134 @@ export function TintingModal({ open, onClose, vehicleBrand, vehicleModel }: Tint
 
           {/* Mode toggle */}
           <div className="px-6 pt-4 pb-0">
-            <div className="flex bg-[#F0EDE8] rounded-2xl p-1">
+            <div className="flex bg-[#F0EDE8] rounded-2xl p-1 gap-0.5">
               <button type="button" onClick={() => { setMode('package'); setError(''); }}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                  mode === 'package'
-                    ? 'bg-white text-[#2D2D2D] shadow-sm'
-                    : 'text-[#878681] hover:text-[#2D2D2D]'
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
+                  mode === 'package' ? 'bg-white text-[#2D2D2D] shadow-sm' : 'text-[#878681] hover:text-[#2D2D2D]'
                 }`}>
-                <Eye className="h-3.5 w-3.5" />
-                แพ็กเกจทั้งคัน
+                <Eye className="h-3 w-3" />แพ็กเกจทั้งคัน
+              </button>
+              <button type="button" onClick={() => { setMode('panel'); setPanelError(''); }}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
+                  mode === 'panel' ? 'bg-white text-[#2D2D2D] shadow-sm' : 'text-[#878681] hover:text-[#2D2D2D]'
+                }`}>
+                <LayoutGrid className="h-3 w-3" />แยกบาน
               </button>
               <button type="button" onClick={() => { setMode('cut'); setCutError(''); }}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                  mode === 'cut'
-                    ? 'bg-white text-[#2D2D2D] shadow-sm'
-                    : 'text-[#878681] hover:text-[#2D2D2D]'
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
+                  mode === 'cut' ? 'bg-white text-[#2D2D2D] shadow-sm' : 'text-[#878681] hover:text-[#2D2D2D]'
                 }`}>
-                <Ruler className="h-3.5 w-3.5" />
-                วัดตัด (นิ้ว → ตร.ฟ.)
+                <Ruler className="h-3 w-3" />วัดตัด
               </button>
             </div>
           </div>
+
+          {/* ─── PANEL MODE ──────────────────────────────────────────────────── */}
+          {mode === 'panel' && (
+            <>
+              <div className="px-6 py-5 space-y-3 max-h-[60vh] overflow-y-auto">
+                {panelError && (
+                  <div className="bg-red-50 text-red-600 text-sm rounded-xl px-3 py-2 border border-red-100">{panelError}</div>
+                )}
+                {vehicleDisplay && (
+                  <div className="flex items-center gap-2.5 bg-[#F0EDE8] rounded-2xl px-4 py-2 border border-[#E5E0DA]">
+                    <span className="text-xs text-[#878681] shrink-0">รุ่นรถ</span>
+                    <span className="text-sm font-semibold text-[#2D2D2D] truncate">{vehicleDisplay}</span>
+                    <span className="text-[10px] text-[#C0BEBA] shrink-0 ml-auto">ดึงจากบิล</span>
+                  </div>
+                )}
+
+                {PANELS.map(({ key, label, hint }) => (
+                  <div key={key} className={`border-2 rounded-2xl transition-all ${panelEnabled[key] ? 'border-[#3B3A36] bg-[#FDFCFA]' : 'border-[#E8E4DF] bg-[#F7F5F2]'}`}>
+                    {/* Panel toggle header */}
+                    <button
+                      type="button"
+                      onClick={() => setPanelEnabled((prev) => ({ ...prev, [key]: !prev[key] }))}
+                      className="w-full flex items-center gap-3 px-4 py-3"
+                    >
+                      <div className={`h-5 w-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${panelEnabled[key] ? 'bg-[#3B3A36] border-[#3B3A36]' : 'border-[#C0BEBA]'}`}>
+                        {panelEnabled[key] && <span className="text-white text-xs font-bold">✓</span>}
+                      </div>
+                      <div className="text-left">
+                        <p className={`text-sm font-semibold ${panelEnabled[key] ? 'text-[#2D2D2D]' : 'text-[#878681]'}`}>{label}</p>
+                        <p className="text-xs text-[#C0BEBA]">{hint}</p>
+                      </div>
+                      {panelEnabled[key] && panelPrice[key] && (
+                        <span className="ml-auto text-sm font-mono font-bold text-[#3B3A36]">
+                          {formatCurrency(parseFloat(panelPrice[key]) || 0)}
+                        </span>
+                      )}
+                    </button>
+
+                    {/* Expanded fields */}
+                    {panelEnabled[key] && (
+                      <div className="px-4 pb-4 space-y-2.5">
+                        <div className="grid grid-cols-2 gap-2">
+                          {/* Brand dropdown */}
+                          <div>
+                            <label className="block text-xs text-[#878681] mb-1">ยี่ห้อ</label>
+                            <select
+                              value={panelBrand[key]}
+                              onChange={(e) => setPanelBrand((prev) => ({ ...prev, [key]: e.target.value }))}
+                              className="w-full bg-[#F0EDE8] border-0 rounded-xl px-3 py-2 text-sm text-[#2D2D2D] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all"
+                            >
+                              <option value="">ไม่ระบุ</option>
+                              {TINT_BRANDS.filter((b) => b !== 'อื่นๆ').map((b) => (
+                                <option key={b} value={b}>{b}</option>
+                              ))}
+                            </select>
+                          </div>
+                          {/* Price input */}
+                          <div>
+                            <label className="block text-xs text-[#878681] mb-1">ราคา (บาท) *</label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="100"
+                              inputMode="numeric"
+                              value={panelPrice[key]}
+                              onChange={(e) => setPanelPrice((prev) => ({ ...prev, [key]: e.target.value }))}
+                              placeholder="0"
+                              className="w-full bg-[#F0EDE8] border-0 rounded-xl px-3 py-2 text-sm font-mono text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {/* Total preview */}
+                {PANELS.some((p) => panelEnabled[p.key] && parseFloat(panelPrice[p.key]) > 0) && (
+                  <div className="bg-[#3B3A36] text-white rounded-2xl px-4 py-3 flex items-center justify-between">
+                    <span className="text-sm">รวมทุกบาน</span>
+                    <span className="font-mono font-black text-lg tabular-nums">
+                      {formatCurrency(PANELS.reduce((sum, p) => sum + (panelEnabled[p.key] ? parseFloat(panelPrice[p.key]) || 0 : 0), 0))}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="px-6 pb-6 space-y-3">
+                <div className="flex items-center gap-2 bg-[#F7F5F2] rounded-2xl px-3 py-2">
+                  <Wrench className="h-3.5 w-3.5 text-[#C0BEBA] shrink-0" />
+                  <input type="text" value={panelTech} onChange={(e) => setPanelTech(e.target.value)}
+                    placeholder="ช่างผู้รับผิดชอบ (ไม่บังคับ)"
+                    className="flex-1 bg-transparent text-sm text-[#2D2D2D] placeholder:text-[#C0BEBA] focus:outline-none" />
+                </div>
+                <div className="flex gap-3">
+                  <button type="button" onClick={handleClose}
+                    className="flex-1 bg-[#F0EDE8] hover:bg-[#E5E5E3] rounded-2xl px-4 py-2.5 text-sm font-medium text-[#878681] hover:text-[#2D2D2D] transition-all active:scale-[0.98]">
+                    ยกเลิก
+                  </button>
+                  <button type="button" onClick={handleAddPanels}
+                    className="flex-1 bg-[#3B3A36] hover:opacity-90 text-white rounded-2xl px-4 py-2.5 text-sm font-medium transition-all active:scale-[0.98]">
+                    เพิ่มในบิล
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
 
           {/* ─── PACKAGE MODE ────────────────────────────────────────────────── */}
           {mode === 'package' && (

@@ -115,13 +115,13 @@ export function CheckoutModal({ open, onClose }: CheckoutModalProps) {
 
       return order.id;
     },
-    onSuccess: (orderId) => {
+    onSuccess: (orderId, vars) => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       clearCart();
       reset();
       onClose();
-      navigate(`/orders/${orderId}`);
+      navigate(vars.markAsPaid ? `/orders/${orderId}?receipt=1` : `/orders/${orderId}`);
     },
   });
 
