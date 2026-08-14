@@ -115,7 +115,7 @@ export default function ProductsPage() {
         {/* Controls */}
         <div className="flex items-center gap-2 shrink-0">
           {!isPending && (
-            <p className="text-sm text-[#878681]">
+            <p className="text-sm text-[#878681] hidden sm:block">
               <span className="font-semibold text-[#2D2D2D]">{total}</span> รายการ
             </p>
           )}

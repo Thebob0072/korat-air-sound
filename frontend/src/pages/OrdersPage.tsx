@@ -87,7 +87,7 @@ export default function OrdersPage() {
         {/* Controls */}
         <div className="flex items-center gap-2 shrink-0">
           {!isPending && !isError && (
-            <p className="text-sm text-[#878681]">
+            <p className="text-sm text-[#878681] hidden sm:block">
               <span className="font-semibold text-[#2D2D2D]">{total}</span> ออเดอร์
               {dateFilter && <span className="ml-1.5 text-xs bg-[#F0EDE8] px-2 py-0.5 rounded-full">กรองตามวันที่</span>}
             </p>

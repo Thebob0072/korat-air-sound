@@ -4,7 +4,7 @@ import type { Order } from '@/types';
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const thb = (n: number | string) =>
-  Number(n).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 // ── Thai baht in words ────────────────────────────────────────────────────────
 const ONES = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];

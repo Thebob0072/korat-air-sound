@@ -62,10 +62,10 @@ interface MiniStatCardProps {
 }
 function MiniStatCard({ label, revenue, orders, accent }: MiniStatCardProps) {
   return (
-    <div className="bg-white rounded-[20px] border border-[#E5E5E3] p-3 sm:p-4 relative overflow-hidden shadow-[0_1px_6px_rgb(0,0,0,0.04)]">
+    <div className="bg-white rounded-[20px] border border-[#E5E5E3] p-2.5 sm:p-4 relative overflow-hidden shadow-[0_1px_6px_rgb(0,0,0,0.04)]">
       <div className={`absolute top-0 left-0 right-0 h-[3px] ${accent}`} />
       <p className="text-[10px] sm:text-[11px] font-semibold text-[#878681] mt-0.5 tracking-wide truncate">{label}</p>
-      <p className="font-mono font-black text-base sm:text-[22px] text-[#2D2D2D] tabular-nums mt-1 leading-none truncate">
+      <p className="font-mono font-black text-sm sm:text-[22px] text-[#2D2D2D] tabular-nums mt-1 leading-none break-all">
         {formatCurrency(revenue)}
       </p>
       <p className="text-[10px] sm:text-xs text-[#C0BEBA] mt-1.5">{orders.toLocaleString()} ออเดอร์</p>
@@ -254,7 +254,7 @@ export default function ReportsPage() {
         </div>
 
         {/* Today / Month / Year */}
-        <div className="lg:col-span-2 grid grid-cols-3 gap-3">
+        <div className="lg:col-span-2 grid grid-cols-3 gap-2 sm:gap-3">
           <MiniStatCard label="วันนี้"   revenue={data.today.revenue}     orders={data.today.orders}     accent="bg-sky-400" />
           <MiniStatCard label="เดือนนี้" revenue={data.thisMonth.revenue} orders={data.thisMonth.orders} accent="bg-violet-400" />
           <MiniStatCard label="ปีนี้"    revenue={data.thisYear.revenue}  orders={data.thisYear.orders}  accent="bg-emerald-400" />

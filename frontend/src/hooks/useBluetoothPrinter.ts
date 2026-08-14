@@ -230,11 +230,18 @@ export function useBluetoothPrinter() {
       setDeviceName(device.name ?? 'เครื่องพิมพ์');
       setStatus('connected');
     } catch (err) {
-      if ((err as Error).name === 'NotFoundError') {
-        // User cancelled picker
+      const name = (err as Error).name;
+      const msg = (err as Error).message ?? '';
+      if (name === 'NotFoundError') {
         setStatus('idle');
+      } else if (name === 'SecurityError' || msg.toLowerCase().includes('permission')) {
+        setError('ต้อง pair เครื่องพิมพ์ก่อน: Settings → Bluetooth → เพิ่มอุปกรณ์');
+        setStatus('error');
+      } else if (msg.includes('GATT') || name === 'NetworkError') {
+        setError('เชื่อมต่อไม่ได้ — pair เครื่องพิมพ์ที่ Settings → Bluetooth ก่อน หรือรีสตาร์ท Bluetooth');
+        setStatus('error');
       } else {
-        setError((err as Error).message ?? 'เชื่อมต่อไม่สำเร็จ');
+        setError(msg || 'เชื่อมต่อไม่สำเร็จ');
         setStatus('error');
       }
     }
@@ -262,10 +269,11 @@ export function useBluetoothPrinter() {
       const CHUNK = 512;
       for (let offset = 0; offset < buffer.length; offset += CHUNK) {
         const chunk = buffer.slice(offset, offset + CHUNK);
+        if (!charRef.current) throw new Error('การเชื่อมต่อถูกตัดกลางคัน');
         try {
           await charRef.current.writeValueWithoutResponse(chunk);
         } catch {
-          await charRef.current.writeValue(chunk);
+          await charRef.current?.writeValue(chunk);
         }
         // Small delay between chunks
         if (offset + CHUNK < buffer.length) {
