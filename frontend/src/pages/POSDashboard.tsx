@@ -67,6 +67,7 @@ export default function POSDashboard() {
   const [showRegistration, setShowRegistration] = useState(false);
   const [notFoundQuery, setNotFoundQuery] = useState('');
   const [showCheckout, setShowCheckout] = useState(false);
+  const [checkoutMode, setCheckoutMode] = useState<'checkout' | 'credit'>('checkout');
   const [showTinting, setShowTinting] = useState(false);
   const [showOther, setShowOther] = useState(false);
   const [showAirCon, setShowAirCon] = useState(false);
@@ -156,7 +157,7 @@ export default function POSDashboard() {
   );
 
   const handleSearch = async () => {
-    const q = query.trim();
+    const q = query.trim().replace(/\s+/g, ' ');
     if (!q) return;
     setIsSearching(true);
     setSearchError('');
@@ -714,7 +715,7 @@ export default function POSDashboard() {
 
               {/* Primary: ชำระเงิน */}
               <button
-                onClick={() => setShowCheckout(true)}
+                onClick={() => { setCheckoutMode('checkout'); setShowCheckout(true); }}
                 disabled={items.length === 0 || !vehicle}
                 className="w-full py-3.5 bg-[#3B3A36] hover:opacity-90 active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed text-white text-sm font-bold rounded-2xl transition-all duration-300 flex items-center justify-center gap-2"
               >
@@ -725,7 +726,7 @@ export default function POSDashboard() {
               {/* Secondary row */}
               <div className={`grid gap-2 ${isCreditEligible ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 <button
-                  onClick={() => setShowCheckout(true)}
+                  onClick={() => { setCheckoutMode('checkout'); setShowCheckout(true); }}
                   disabled={items.length === 0 || !vehicle}
                   className="h-10 bg-[#F0EDE8] hover:bg-[#E5E5E3] active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed text-[#4A4845] hover:text-[#2D2D2D] text-xs font-semibold rounded-xl transition-all duration-300 flex items-center justify-center gap-1.5"
                 >
@@ -734,7 +735,7 @@ export default function POSDashboard() {
                 </button>
                 {isCreditEligible && (
                   <button
-                    onClick={() => setShowCheckout(true)}
+                    onClick={() => { setCheckoutMode('credit'); setShowCheckout(true); }}
                     disabled={items.length === 0 || !vehicle}
                     className="h-10 bg-blue-50 hover:bg-blue-100 active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed text-blue-700 text-xs font-semibold rounded-xl transition-all duration-300 flex items-center justify-center gap-1.5 border border-blue-200"
                   >
@@ -790,7 +791,7 @@ export default function POSDashboard() {
       <GlassModal open={showGlass} onClose={() => setShowGlass(false)} vehicleBrand={vehicle?.brand} vehicleModel={vehicle?.model} />
       <AirConModal open={showAirCon} onClose={() => setShowAirCon(false)} vehicleBrand={vehicle?.brand} vehicleModel={vehicle?.model} />
       <SoundModal open={showSound} onClose={() => setShowSound(false)} vehicleBrand={vehicle?.brand} vehicleModel={vehicle?.model} />
-      <CheckoutModal open={showCheckout} onClose={() => { setShowCheckout(false); setBillView(false); }} />
+      <CheckoutModal open={showCheckout} onClose={() => { setShowCheckout(false); setBillView(false); }} mode={checkoutMode} />
     </>
   );
 }

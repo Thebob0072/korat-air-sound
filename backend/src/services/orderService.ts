@@ -24,6 +24,7 @@ export interface SubmitOrderDto {
   vehicleId: string;
   items: SubmitOrderItem[];
   discount?: number;
+  credit?: boolean; // วางบิล 30 วัน — sets InvoicePending + dueDate
 }
 
 // ── generateOrderNumber ───────────────────────────────────────────────────────
@@ -146,12 +147,19 @@ export async function submitOrder(dto: SubmitOrderDto) {
 
     const totalAmount = Math.max(0, subtotal - (dto.discount ?? 0));
 
+    let dueDate: Date | undefined;
+    if (dto.credit) {
+      dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 30);
+    }
+
     return tx.order.create({
       data: {
         vehicleId: dto.vehicleId,
         orderNumber,
         totalAmount,
-        status: 'Quoted',
+        status: dto.credit ? 'InvoicePending' : 'Quoted',
+        dueDate,
         orderItems: { create: itemsData },
       },
       include: {

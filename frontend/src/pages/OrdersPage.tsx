@@ -17,6 +17,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   InProgress: 'กำลังซ่อม',
   WaitingForParts: 'รออะไหล่',
   Ready: 'รอส่งมอบ',
+  InvoicePending: 'วางบิล',
   Paid: 'ชำระแล้ว',
   Cancelled: 'ยกเลิก',
 };
@@ -29,6 +30,7 @@ const STATUS_BADGE: Record<OrderStatus, BadgeVariant> = {
   InProgress: 'default',
   WaitingForParts: 'warning',
   Ready: 'success',
+  InvoicePending: 'warning',
   Paid: 'success',
   Cancelled: 'destructive',
 };
@@ -37,6 +39,7 @@ const FILTERS: { value: string; label: string }[] = [
   { value: '', label: 'ทั้งหมด' },
   { value: 'Draft', label: 'แบบร่าง' },
   { value: 'Quoted', label: 'ใบเสนอราคา' },
+  { value: 'InvoicePending', label: 'วางบิล' },
   { value: 'Paid', label: 'ชำระแล้ว' },
   { value: 'Cancelled', label: 'ยกเลิก' },
 ];
@@ -157,6 +160,11 @@ export default function OrdersPage() {
                     <Badge variant={STATUS_BADGE[order.status]}>
                       {STATUS_LABELS[order.status]}
                     </Badge>
+                    {order.status === 'InvoicePending' && order.dueDate && (
+                      <div className={`text-xs mt-1 font-medium ${new Date(order.dueDate) < new Date() ? 'text-red-500' : 'text-blue-500'}`}>
+                        ครบ {new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short' }).format(new Date(order.dueDate))}
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

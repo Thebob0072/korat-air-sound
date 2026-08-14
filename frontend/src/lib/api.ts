@@ -67,6 +67,7 @@ export interface SubmitBillDto {
   vehicleId: string;
   items: SubmitBillItem[];
   discount?: number;
+  credit?: boolean;
 }
 
 /** Atomic POS bill submission — backend re-fetches all product prices from DB */
@@ -145,3 +146,45 @@ export interface CustomerListResponse {
 
 export const getCustomerList = (params?: { q?: string; page?: number; pageSize?: number }) =>
   api.get<CustomerListResponse>('/customers', { params }).then((r) => r.data);
+
+export interface CustomerDetail {
+  id: string;
+  name: string | null;
+  phone: string | null;
+  createdAt: string;
+  vehicles: Array<{
+    id: string;
+    licensePlate: string;
+    brand: string | null;
+    model: string | null;
+    orders: Array<{
+      id: string;
+      orderNumber: string;
+      status: string;
+      totalAmount: string;
+      dueDate: string | null;
+      createdAt: string;
+      orderItems: Array<{ id: string; customLabel: string | null; quantity: string; unitPrice: string; subtotalPrice: string; product: { name: string } | null }>;
+    }>;
+  }>;
+}
+
+export const getCustomerDetail = (id: string) =>
+  api.get<CustomerDetail>(`/customers/${id}`).then((r) => r.data);
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+
+export interface DashboardData {
+  revenue: {
+    today:     { amount: number; orders: number };
+    thisMonth: { amount: number; orders: number };
+    thisYear:  { amount: number; orders: number };
+  };
+  active:  { orders: Order[]; count: number };
+  credit:  { orders: Order[]; total: number; overdueCount: number };
+  recentPaid: Order[];
+  newCustomersMonth: number;
+}
+
+export const getDashboard = () =>
+  api.get<DashboardData>('/dashboard').then((r) => r.data);

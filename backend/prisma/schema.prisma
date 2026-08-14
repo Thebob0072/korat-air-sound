@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -70,6 +70,7 @@ model Order {
   vehicleId   String      @map("vehicle_id")
   status      OrderStatus @default(Draft)
   totalAmount Decimal     @default(0) @map("total_amount") @db.Decimal(12, 2)
+  dueDate     DateTime?   @map("due_date")
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
   orderItems  OrderItem[]
@@ -117,9 +118,10 @@ enum ProductCategory {
 enum OrderStatus {
   Draft
   Quoted
-  InProgress      // กำลังซ่อม/ติดตั้ง
-  WaitingForParts // รออะไหล่/รอกระจก
-  Ready           // รถเสร็จ รอลูกค้ามารับ
+  InProgress        // กำลังซ่อม/ติดตั้ง
+  WaitingForParts   // รออะไหล่/รอกระจก
+  Ready             // รถเสร็จ รอลูกค้ามารับ
+  InvoicePending    // วางบิล เครดิต 30 วัน
   Paid
   Cancelled
 }

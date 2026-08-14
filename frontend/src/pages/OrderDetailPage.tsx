@@ -36,6 +36,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   InProgress: 'กำลังซ่อม',
   WaitingForParts: 'รออะไหล่',
   Ready: 'รอส่งมอบ',
+  InvoicePending: 'วางบิล (เครดิต)',
   Paid: 'ชำระแล้ว',
   Cancelled: 'ยกเลิก',
 };
@@ -48,6 +49,7 @@ const STATUS_BADGE: Record<OrderStatus, BadgeVariant> = {
   InProgress: 'default',
   WaitingForParts: 'warning',
   Ready: 'success',
+  InvoicePending: 'warning',
   Paid: 'success',
   Cancelled: 'destructive',
 };
@@ -184,6 +186,11 @@ export default function OrderDetailPage() {
       setBillPreviewDocType('receipt');
       setShowBillPreview(true);
     }
+    if (order && searchParams.get('invoice') === '1' && order.status === 'InvoicePending') {
+      setSearchParams({}, { replace: true });
+      setBillPreviewDocType('invoice');
+      setShowBillPreview(true);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order?.id, order?.status]);
 
@@ -216,6 +223,11 @@ export default function OrderDetailPage() {
             </Button>
             <h1 className="text-lg font-bold text-[#2D2D2D] truncate">{order.orderNumber}</h1>
             <Badge variant={STATUS_BADGE[order.status]}>{STATUS_LABELS[order.status]}</Badge>
+            {order.status === 'InvoicePending' && order.dueDate && (
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${new Date(order.dueDate) < new Date() ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                ครบ {new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short' }).format(new Date(order.dueDate))}
+              </span>
+            )}
           </div>
 
           <div className="flex gap-2 flex-wrap">
@@ -248,11 +260,21 @@ export default function OrderDetailPage() {
                 ชำระเงิน
               </Button>
             )}
+            {order.status === 'InvoicePending' && (
+              <Button onClick={() => setShowPayConfirm(true)} disabled={isAnyMutating}>
+                <CreditCard className="h-4 w-4 mr-2" />
+                ชำระเงิน
+              </Button>
+            )}
             {hasItems && order.status !== 'Cancelled' && (
               <Button
                 variant="outline"
                 onClick={() => {
-                  setBillPreviewDocType(order.status === 'Paid' ? 'receipt' : 'quotation');
+                  setBillPreviewDocType(
+                    order.status === 'Paid' ? 'receipt'
+                    : order.status === 'InvoicePending' ? 'invoice'
+                    : 'quotation'
+                  );
                   setShowBillPreview(true);
                 }}
               >

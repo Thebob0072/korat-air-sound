@@ -38,11 +38,13 @@ type CheckoutFormValues = z.infer<typeof CheckoutSchema>;
 interface CheckoutModalProps {
   open: boolean;
   onClose: () => void;
+  mode?: 'checkout' | 'credit';
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function CheckoutModal({ open, onClose }: CheckoutModalProps) {
+export function CheckoutModal({ open, onClose, mode = 'checkout' }: CheckoutModalProps) {
+  const isCredit = mode === 'credit';
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -83,23 +85,21 @@ export function CheckoutModal({ open, onClose }: CheckoutModalProps) {
   // ── Mutation ────────────────────────────────────────────────────────────────
 
   const commitMutation = useMutation({
-    mutationFn: async ({ markAsPaid, discount }: { markAsPaid: boolean; discount: number }) => {
+    mutationFn: async ({ markAsPaid, discount, credit }: { markAsPaid: boolean; discount: number; credit?: boolean }) => {
       if (!vehicle) throw new Error('ไม่พบข้อมูลรถ กรุณาค้นหาอีกครั้ง');
       if (items.length === 0) throw new Error('ไม่มีรายการในบิล');
 
-      // UUID pattern — real DB products; anything else is a synthetic custom item
       const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-      // Single atomic call — backend re-fetches all prices from DB
       const order = await submitBill({
         vehicleId: vehicle.id,
         discount,
+        credit,
         items: items.map((item) => {
           const isRealProduct = UUID_RE.test(item.product.id);
           return {
             productId: isRealProduct ? item.product.id : undefined,
             customLabel: isRealProduct ? undefined : item.product.name,
-            // unitPrice only for custom-label items (no DB product to re-fetch)
             unitPrice: isRealProduct ? undefined : Number(item.product.sellingPrice),
             quantity: item.quantity,
             technicianName: item.technicianName,
@@ -121,7 +121,13 @@ export function CheckoutModal({ open, onClose }: CheckoutModalProps) {
       clearCart();
       reset();
       onClose();
-      navigate(vars.markAsPaid ? `/orders/${orderId}?receipt=1` : `/orders/${orderId}`);
+      if (vars.markAsPaid) {
+        navigate(`/orders/${orderId}?receipt=1`);
+      } else if (vars.credit) {
+        navigate(`/orders/${orderId}?invoice=1`);
+      } else {
+        navigate(`/orders/${orderId}`);
+      }
     },
   });
 
@@ -148,7 +154,7 @@ export function CheckoutModal({ open, onClose }: CheckoutModalProps) {
       }
 
       setDiscount(discount);
-      commitMutation.mutate({ markAsPaid, discount });
+      commitMutation.mutate({ markAsPaid, discount, credit: isCredit || undefined });
     })();
 
   const handleClose = () => {
@@ -174,7 +180,7 @@ export function CheckoutModal({ open, onClose }: CheckoutModalProps) {
           <div className="flex items-start justify-between px-6 py-5 border-b border-[#E5E5E3] shrink-0">
             <div>
               <Dialog.Title className="text-lg font-bold text-[#2D2D2D] leading-none">
-                ยืนยันการชำระเงิน
+                {isCredit ? 'วางบิล เครดิต 30 วัน' : 'ยืนยันการชำระเงิน'}
               </Dialog.Title>
               <p id="checkout-description" className="text-xs text-[#878681] mt-1.5">{dateLabel}</p>
             </div>
@@ -250,33 +256,50 @@ export function CheckoutModal({ open, onClose }: CheckoutModalProps) {
                 )}
               </div>
 
-              {/* Payment method */}
-              <div>
-                <p className="text-sm font-semibold text-[#2D2D2D] mb-2">วิธีชำระเงิน</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {([
-                    { value: 'cash', label: 'เงินสด', Icon: Banknote },
-                    { value: 'transfer', label: 'โอนเงิน', Icon: Smartphone },
-                  ] as const).map(({ value, label, Icon }) => (
-                    <label
-                      key={value}
-                      className={cn(
-                        'flex items-center justify-center gap-2.5 h-12 border-2 rounded-2xl cursor-pointer transition-all duration-200 font-semibold text-sm select-none',
-                        paymentMethod === value
-                          ? 'border-[#3B3A36] bg-[#3B3A36] text-white'
-                          : 'border-[#E5E5E3] bg-white text-[#878681] hover:border-[#3B3A36] hover:text-[#2D2D2D]',
-                      )}
-                    >
-                      <input type="radio" value={value} className="sr-only" {...register('paymentMethod')} />
-                      <Icon className="h-4 w-4" />
-                      {label}
-                    </label>
-                  ))}
+              {/* Credit info banner */}
+              {isCredit && (
+                <div className="bg-blue-50 border border-blue-200 rounded-2xl px-4 py-3.5 space-y-1">
+                  <p className="text-sm font-semibold text-blue-800">เครดิต 30 วัน</p>
+                  <p className="text-xs text-blue-600">
+                    กำหนดชำระ:{' '}
+                    <span className="font-bold">
+                      {new Intl.DateTimeFormat('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })
+                        .format(new Date(Date.now() + 30 * 86_400_000))}
+                    </span>
+                  </p>
+                  <p className="text-xs text-blue-500 mt-1">ระบบจะบันทึกเป็นใบวางบิล — ชำระภายหลังที่หน้าประวัติออเดอร์</p>
                 </div>
-              </div>
+              )}
+
+              {/* Payment method (checkout mode only) */}
+              {!isCredit && (
+                <div>
+                  <p className="text-sm font-semibold text-[#2D2D2D] mb-2">วิธีชำระเงิน</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { value: 'cash', label: 'เงินสด', Icon: Banknote },
+                      { value: 'transfer', label: 'โอนเงิน', Icon: Smartphone },
+                    ] as const).map(({ value, label, Icon }) => (
+                      <label
+                        key={value}
+                        className={cn(
+                          'flex items-center justify-center gap-2.5 h-12 border-2 rounded-2xl cursor-pointer transition-all duration-200 font-semibold text-sm select-none',
+                          paymentMethod === value
+                            ? 'border-[#3B3A36] bg-[#3B3A36] text-white'
+                            : 'border-[#E5E5E3] bg-white text-[#878681] hover:border-[#3B3A36] hover:text-[#2D2D2D]',
+                        )}
+                      >
+                        <input type="radio" value={value} className="sr-only" {...register('paymentMethod')} />
+                        <Icon className="h-4 w-4" />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* PromptPay QR */}
-              {paymentMethod === 'transfer' && (
+              {!isCredit && paymentMethod === 'transfer' && (
                 <div className="flex flex-col items-center gap-3 bg-[#F7F7F5] rounded-2xl px-6 py-5">
                   <div className="flex items-center gap-2 text-xs font-semibold text-[#878681]">
                     <QrCode className="h-3.5 w-3.5" />
@@ -297,7 +320,7 @@ export function CheckoutModal({ open, onClose }: CheckoutModalProps) {
               )}
 
               {/* Cash received */}
-              {paymentMethod === 'cash' && (
+              {!isCredit && paymentMethod === 'cash' && (
                 <div>
                   <label htmlFor="cashReceived" className="block text-sm font-semibold text-[#2D2D2D] mb-2">
                     รับเงินมา <span className="font-normal text-[#878681]">(บาท)</span>
@@ -372,29 +395,44 @@ export function CheckoutModal({ open, onClose }: CheckoutModalProps) {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-2">
+            {isCredit ? (
               <button
                 type="button"
                 onClick={() => submitWithMode(false)}
                 disabled={commitMutation.isPending}
-                className="h-12 bg-[#F7F7F5] hover:bg-[#E5E5E3] text-[#878681] hover:text-[#2D2D2D] text-sm font-medium rounded-2xl transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                <FileText className="h-4 w-4" />
-                ออกใบเสนอราคา
-              </button>
-              <button
-                type="button"
-                onClick={() => submitWithMode(true)}
-                disabled={commitMutation.isPending}
-                className="h-12 bg-[#3B3A36] hover:opacity-90 text-white text-sm font-medium rounded-2xl transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-2xl transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {commitMutation.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <><CreditCard className="h-4 w-4" />ยืนยันชำระเงิน</>
+                  <><FileText className="h-4 w-4" />วางบิล 30 วัน</>
                 )}
               </button>
-            </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => submitWithMode(false)}
+                  disabled={commitMutation.isPending}
+                  className="h-12 bg-[#F7F7F5] hover:bg-[#E5E5E3] text-[#878681] hover:text-[#2D2D2D] text-sm font-medium rounded-2xl transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <FileText className="h-4 w-4" />
+                  ออกใบเสนอราคา
+                </button>
+                <button
+                  type="button"
+                  onClick={() => submitWithMode(true)}
+                  disabled={commitMutation.isPending}
+                  className="h-12 bg-[#3B3A36] hover:opacity-90 text-white text-sm font-medium rounded-2xl transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {commitMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <><CreditCard className="h-4 w-4" />ยืนยันชำระเงิน</>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </Dialog.Content>
       </Dialog.Portal>

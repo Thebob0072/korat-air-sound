@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Car, ShoppingBag, Package, LayoutDashboard, Users, BarChart2 } from 'lucide-react';
+import { Car, ShoppingBag, Package, LayoutDashboard, Users, BarChart2, Receipt, PieChart, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useBusiness } from '@/context/BusinessContext';
 
 const NAV_ITEMS = [
-  { href: '/',          label: 'POS',      icon: LayoutDashboard },
-  { href: '/orders',    label: 'ออเดอร์',  icon: ShoppingBag },
-  { href: '/customers', label: 'ลูกค้า',   icon: Users },
-  { href: '/products',  label: 'สินค้า',   icon: Package },
-  { href: '/reports',   label: 'สรุปยอด', icon: BarChart2 },
+  { href: '/dashboard',    label: 'ภาพรวม',    icon: PieChart },
+  { href: '/',             label: 'POS',        icon: LayoutDashboard },
+  { href: '/orders',       label: 'ออเดอร์',   icon: ShoppingBag },
+  { href: '/customers',    label: 'ลูกค้า',    icon: Users },
+  { href: '/receivables',  label: 'ลูกหนี้',   icon: Receipt },
+  { href: '/products',     label: 'สินค้า',    icon: Package },
+  { href: '/reports',      label: 'สรุปยอด',   icon: BarChart2 },
 ];
 
 function LiveClock() {
@@ -31,18 +34,26 @@ function LiveClock() {
 
 export default function Navbar() {
   const { pathname } = useLocation();
+  const { selected } = useBusiness();
 
   return (
     <nav className="no-print bg-white border-b border-[#E5E5E3] sticky top-0 z-40">
       <div className="mx-auto px-4 sm:px-6 max-w-7xl flex items-center h-14 gap-1">
-        {/* Brand */}
-        <Link to="/" className="flex items-center gap-2.5 shrink-0 mr-5">
+        {/* Brand — click to change business */}
+        <Link to="/select" className="flex items-center gap-2.5 shrink-0 mr-5 group">
           <div className="h-8 w-8 bg-[#3B3A36] rounded-xl flex items-center justify-center shrink-0">
             <Car className="h-4 w-4 text-white" />
           </div>
-          <div className="leading-none hidden lg:block">
-            <p className="font-bold text-sm text-[#2D2D2D] tracking-tight">Korat Air &amp; Sound</p>
-            <p className="text-[10px] text-[#878681] mt-0.5 font-normal">แอร์รถยนต์ · ฟิล์ม · กระจก</p>
+          <div className="leading-none hidden lg:flex items-center gap-1">
+            <div>
+              <p className="font-bold text-sm text-[#2D2D2D] tracking-tight group-hover:text-[#3B3A36] transition-colors">
+                {selected?.name ?? 'เลือกธุรกิจ'}
+              </p>
+              {selected?.tagline && (
+                <p className="text-[10px] text-[#878681] mt-0.5 font-normal line-clamp-1 max-w-[180px]">{selected.tagline}</p>
+              )}
+            </div>
+            <ChevronDown className="h-3 w-3 text-[#C0BEBA] group-hover:text-[#878681] transition-colors mt-0.5 shrink-0" />
           </div>
         </Link>
 

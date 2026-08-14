@@ -12,9 +12,10 @@ export enum ProductCategory {
 export type OrderStatus =
   | 'Draft'
   | 'Quoted'
-  | 'InProgress'      // กำลังซ่อม/ติดตั้ง
-  | 'WaitingForParts' // รออะไหล่/รอกระจก
-  | 'Ready'           // เสร็จแล้ว รอลูกค้ามารับ
+  | 'InProgress'       // กำลังซ่อม/ติดตั้ง
+  | 'WaitingForParts'  // รออะไหล่/รอกระจก
+  | 'Ready'            // เสร็จแล้ว รอลูกค้ามารับ
+  | 'InvoicePending'   // วางบิล เครดิต 30 วัน
   | 'Paid'
   | 'Cancelled';
 
@@ -143,6 +144,7 @@ export interface Order {
   vehicle?: Vehicle;
   status: OrderStatus;
   totalAmount: string | number;
+  dueDate?: string | null;
   createdAt: string;
   updatedAt: string;
   orderItems?: OrderItem[];

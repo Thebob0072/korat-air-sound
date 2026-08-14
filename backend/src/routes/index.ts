@@ -5,6 +5,7 @@ import productsRouter from './products';
 import ordersRouter from './orders';
 import hardwareRouter from './hardware';
 import reportsRouter from './reports';
+import dashboardRouter from './dashboard';
 
 export const router = Router();
 
@@ -14,3 +15,4 @@ router.use('/products', productsRouter);
 router.use('/orders', ordersRouter);
 router.use('/hardware', hardwareRouter);
 router.use('/reports', reportsRouter);
+router.use('/dashboard', dashboardRouter);

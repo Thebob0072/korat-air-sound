@@ -29,6 +29,7 @@ const AddItemSchema = z
 const SubmitOrderSchema = z.object({
   vehicleId: z.string().uuid(),
   discount: z.number().nonnegative().default(0),
+  credit: z.boolean().optional(),
   items: z
     .array(
       z
@@ -147,6 +148,7 @@ router.patch('/:id/status', async (req: Request, res: Response, next: NextFuncti
           'InProgress',
           'WaitingForParts',
           'Ready',
+          'InvoicePending',
           'Cancelled',
         ]),
       })

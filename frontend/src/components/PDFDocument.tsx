@@ -64,14 +64,22 @@ export interface BillingInfo {
   phone: string;
 }
 
+export interface ShopInfo {
+  name: string;
+  tagline?: string;
+  address?: string;
+  phone?: string;
+}
+
 export interface PDFDocumentProps {
   order: Order;
   docType: 'receipt' | 'quotation' | 'invoice';
   billingInfo?: BillingInfo;
+  shopInfo?: ShopInfo;
 }
 
 export const PDFDocument = forwardRef<HTMLDivElement, PDFDocumentProps>(
-  ({ order, docType, billingInfo }, ref) => {
+  ({ order, docType, billingInfo, shopInfo }, ref) => {
     const isReceipt = docType === 'receipt';
     const isInvoice = docType === 'invoice';
 
@@ -131,11 +139,11 @@ export const PDFDocument = forwardRef<HTMLDivElement, PDFDocumentProps>(
             {/* Left: company */}
             <div>
               <div style={{ fontSize: '17px', fontWeight: '900', color: TEXT, letterSpacing: '-0.02em', lineHeight: '1' }}>
-                Korat Air &amp; Sound
+                {shopInfo?.name ?? 'Korat Air & Sound'}
               </div>
               <div style={{ fontSize: '10.5px', color: MUTED, marginTop: '5px', lineHeight: '1.8' }}>
-                ร้านประดับยนต์ ติดตั้งฟิล์ม ซ่อมแอร์ กระจกรถยนต์<br />
-                711-715 ถ.ท้าวสุระ อ.เมือง ต.ในเมือง จ.นครราชสีมา 30000 · 093-321-8634
+                {shopInfo?.tagline ?? 'ร้านประดับยนต์ ติดตั้งฟิล์ม ซ่อมแอร์ กระจกรถยนต์'}<br />
+                {[shopInfo?.address ?? '711-715 ถ.ท้าวสุระ อ.เมือง ต.ในเมือง จ.นครราชสีมา 30000', shopInfo?.phone ?? '093-321-8634'].filter(Boolean).join(' · ')}
               </div>
             </div>
 

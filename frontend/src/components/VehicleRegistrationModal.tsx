@@ -1,7 +1,9 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { useState, useRef, useEffect } from 'react';
 import { X, Car, ChevronDown, Check } from 'lucide-react';
+// Check is used in customer checkboxes below
 import { createCustomer, createVehicle } from '@/lib/api';
+import { CarBrandSelect } from '@/components/CarBrandSelect';
 import type { Vehicle } from '@/types';
 
 // ── Thai provinces ─────────────────────────────────────────────────────────────
@@ -207,15 +209,10 @@ export default function VehicleRegistrationModal({ initialQuery, onSuccess, onCl
 
             {/* Brand + Model (required) */}
             <div className="grid grid-cols-2 gap-2">
+              {/* Brand combobox */}
               <div>
                 <label className="block text-xs font-semibold text-[#878681] mb-1.5">ยี่ห้อ *</label>
-                <input
-                  type="text"
-                  value={brand}
-                  onChange={(e) => setBrand(e.target.value)}
-                  placeholder="Toyota"
-                  className="w-full bg-[#F0EDE8] border-0 rounded-2xl px-3 py-2.5 text-sm font-medium text-[#2D2D2D] placeholder:text-[#C0BEBA] placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all"
-                />
+                <CarBrandSelect value={brand} onChange={setBrand} />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-[#878681] mb-1.5">รุ่น *</label>

@@ -12,6 +12,20 @@ const CreateVehicleSchema = z.object({
   customerId: z.string().uuid().optional(),
 });
 
+/**
+ * Build search variants for Thai license plates so that spaces between
+ * Thai characters and digits are handled flexibly.
+ * e.g. "น3" → ["น3", "น 3"]
+ *      "นข 3445" → ["นข 3445", "นข3445"]
+ */
+function plateVariants(q: string): string[] {
+  const stripped = q.replace(/\s+/g, '');
+  const spaced = stripped
+    .replace(/([฀-๿])(\d)/g, '$1 $2')
+    .replace(/(\d)([฀-๿])/g, '$1 $2');
+  return Array.from(new Set([q, stripped, spaced])).filter(Boolean);
+}
+
 /** GET /api/vehicles/search?q=<license_plate_or_phone> */
 router.get('/search', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -20,11 +34,15 @@ router.get('/search', async (req: Request, res: Response, next: NextFunction) =>
       res.json([]);
       return;
     }
+
+    const variants = plateVariants(q);
+
     const vehicles = await prisma.vehicle.findMany({
       where: {
         OR: [
-          { licensePlate: { contains: q } },
+          ...variants.map((v) => ({ licensePlate: { contains: v } })),
           { customer: { phone: { contains: q } } },
+          { customer: { name: { contains: q } } },
         ],
       },
       include: { customer: true },

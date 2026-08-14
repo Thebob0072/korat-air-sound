@@ -89,7 +89,7 @@ router.get('/search', async (req: Request, res: Response, next: NextFunction) =>
   }
 });
 
-/** GET /api/customers/:id */
+/** GET /api/customers/:id — full profile with all vehicles + full order history */
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const customer = await prisma.customer.findUnique({
@@ -97,7 +97,10 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
       include: {
         vehicles: {
           include: {
-            orders: { orderBy: { createdAt: 'desc' }, take: 5 },
+            orders: {
+              orderBy: { createdAt: 'desc' },
+              include: { orderItems: { include: { product: true } } },
+            },
           },
         },
       },

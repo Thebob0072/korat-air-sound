@@ -3,6 +3,7 @@ import { X, FileDown, Printer, Loader2, Bluetooth } from 'lucide-react';
 import { PDFDocument } from '@/components/PDFDocument';
 import { usePDFExport } from '@/hooks/usePDFExport';
 import { Button } from '@/components/ui/button';
+import { useBusiness } from '@/context/BusinessContext';
 import type { Order } from '@/types';
 
 type DocType = 'receipt' | 'quotation' | 'invoice';
@@ -54,6 +55,7 @@ export function BillPreviewModal({
   const [corpAddress, setCorpAddress] = useState('');
   const [corpPhone, setCorpPhone] = useState('');
 
+  const { selected: selectedBusiness } = useBusiness();
   const { docRef, exportPDF, isExporting } = usePDFExport();
 
   // useMemo so PDFDocument only re-renders when billing fields actually change
@@ -161,7 +163,18 @@ export function BillPreviewModal({
               className="overflow-hidden rounded-xl border border-[#E8E4DF] shadow-[0_2px_16px_rgb(0,0,0,0.07)]"
               style={{ minWidth: '794px' }}
             >
-              <PDFDocument ref={docRef} order={order} docType={docType} billingInfo={billingInfo} />
+              <PDFDocument
+                ref={docRef}
+                order={order}
+                docType={docType}
+                billingInfo={billingInfo}
+                shopInfo={selectedBusiness ? {
+                  name: selectedBusiness.name,
+                  tagline: selectedBusiness.tagline,
+                  address: selectedBusiness.address,
+                  phone: selectedBusiness.phone,
+                } : undefined}
+              />
             </div>
           </div>
         </div>

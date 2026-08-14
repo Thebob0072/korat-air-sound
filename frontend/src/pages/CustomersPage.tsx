@@ -1,74 +1,20 @@
-import { Fragment, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Search, ChevronDown, ChevronUp, Car, FileText, Phone, UserRound } from 'lucide-react';
+import { Loader2, Search, Car, Phone, UserRound, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getCustomerList } from '@/lib/api';
-import type { CustomerSummary } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { Pagination, PageSizeSelector } from '@/components/ui/pagination';
 import { type PageSize } from '@/hooks/usePagination';
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-interface ExpandedRowProps {
-  customer: CustomerSummary;
-}
-function ExpandedRow({ customer }: ExpandedRowProps) {
-  const navigate = useNavigate();
-  return (
-    <tr>
-      <td colSpan={6} className="px-5 pb-4 pt-0 bg-[#FAF9F7]">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-3 border-t border-[#F0EDE8]">
-          {customer.vehicles.map((v) => (
-            <div key={v.id} className="bg-white rounded-[16px] p-4 border border-[#E5E5E3]">
-              <div className="flex items-center gap-2 mb-3">
-                <Car className="h-4 w-4 text-[#878681]" />
-                <p className="font-mono font-bold text-sm text-[#2D2D2D] tracking-wide">{v.licensePlate}</p>
-                <p className="text-xs text-[#878681]">{v.brand} {v.model}</p>
-              </div>
-              {v.orders.length === 0 ? (
-                <p className="text-xs text-[#C0BEBA]">ยังไม่มีประวัติงาน</p>
-              ) : (
-                <div className="space-y-1.5">
-                  {v.orders.slice(0, 5).map((o) => (
-                    <button
-                      key={o.id}
-                      onClick={() => navigate(`/orders/${o.id}`)}
-                      className="w-full flex items-center justify-between text-left hover:bg-[#F0EDE8] px-2 py-1.5 rounded-xl transition-colors"
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <FileText className="h-3 w-3 text-[#C0BEBA] shrink-0" />
-                        <span className="text-xs font-mono text-[#3B3A36] truncate">{o.orderNumber}</span>
-                        <span className="text-[10px] text-[#C0BEBA] shrink-0">{formatDate(o.createdAt).split(' ')[0]}</span>
-                      </div>
-                      <span className="text-xs font-semibold font-mono text-[#2D2D2D] ml-2 shrink-0">
-                        {formatCurrency(o.totalAmount)}
-                      </span>
-                    </button>
-                  ))}
-                  {v.orders.length > 5 && (
-                    <p className="text-[10px] text-[#C0BEBA] text-center pt-1">
-                      + อีก {v.orders.length - 5} ออเดอร์
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </td>
-    </tr>
-  );
-}
-
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function CustomersPage() {
+  const navigate = useNavigate();
   const [search, setSearch]     = useState('');
   const [query,  setQuery]      = useState('');
   const [apiPage, setApiPage]   = useState(1);
   const [pageSize, setPageSize] = useState<PageSize>(20);
-  const [expanded, setExpanded] = useState<string | null>(null);
 
   const { data, isPending, isError } = useQuery({
     queryKey: ['customers', 'list', query, apiPage, pageSize],
@@ -83,11 +29,7 @@ export default function CustomersPage() {
   const handleSearch = useCallback(() => {
     setQuery(search.trim());
     setApiPage(1);
-    setExpanded(null);
   }, [search]);
-
-  const toggleExpand = (id: string) =>
-    setExpanded((prev) => (prev === id ? null : id));
 
   return (
     <div className="space-y-5">
@@ -124,7 +66,7 @@ export default function CustomersPage() {
             <p className="text-sm text-[#878681]">
               <span className="font-semibold text-[#2D2D2D]">{total.toLocaleString()}</span> คน
             </p>
-            <PageSizeSelector pageSize={pageSize} onPageSizeChange={(s) => { setPageSize(s); setApiPage(1); setExpanded(null); }} />
+            <PageSizeSelector pageSize={pageSize} onPageSizeChange={(s) => { setPageSize(s); setApiPage(1); }} />
           </div>
         )}
       </div>
@@ -153,61 +95,54 @@ export default function CustomersPage() {
               </thead>
               <tbody>
                 {customers.map((c) => (
-                  <Fragment key={c.id}>
-                    <tr
-                      className={`border-b border-[#F0EDE8] last:border-0 cursor-pointer transition-colors ${
-                        expanded === c.id ? 'bg-[#FAF9F7]' : 'hover:bg-[#F7F5F2]'
-                      }`}
-                      onClick={() => toggleExpand(c.id)}
-                    >
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-2.5">
-                          <div className="h-8 w-8 rounded-xl bg-[#F0EDE8] flex items-center justify-center shrink-0">
-                            <UserRound className="h-4 w-4 text-[#878681]" />
-                          </div>
-                          <span className="font-medium text-[#2D2D2D]">
-                            {c.name ?? <span className="text-[#C0BEBA] text-xs italic">ไม่มีชื่อ</span>}
-                          </span>
+                  <tr
+                    key={c.id}
+                    className="border-b border-[#F0EDE8] last:border-0 cursor-pointer hover:bg-[#F7F5F2] transition-colors"
+                    onClick={() => navigate(`/customers/${c.id}`)}
+                  >
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-2.5">
+                        <div className="h-8 w-8 rounded-xl bg-[#F0EDE8] flex items-center justify-center shrink-0">
+                          <UserRound className="h-4 w-4 text-[#878681]" />
                         </div>
-                      </td>
-                      <td className="px-5 py-4">
-                        {c.phone ? (
-                          <div className="flex items-center gap-1.5 text-[#878681]">
-                            <Phone className="h-3.5 w-3.5 shrink-0" />
-                            <span className="font-mono text-sm">{c.phone}</span>
-                          </div>
-                        ) : (
-                          <span className="text-[#C0BEBA] text-xs">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-4 text-center">
-                        <span className="inline-flex items-center gap-1 text-sm text-[#2D2D2D]">
-                          <Car className="h-3.5 w-3.5 text-[#878681]" />
-                          {c.vehicleCount}
+                        <span className="font-medium text-[#2D2D2D]">
+                          {c.name ?? <span className="text-[#C0BEBA] text-xs italic">ไม่มีชื่อ</span>}
                         </span>
-                      </td>
-                      <td className="px-4 py-4 text-center">
-                        <span className={`text-sm font-semibold ${c.totalOrders > 0 ? 'text-[#2D2D2D]' : 'text-[#C0BEBA]'}`}>
-                          {c.totalOrders}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4 text-right font-mono font-semibold text-[#2D2D2D]">
-                        {c.totalRevenue > 0 ? formatCurrency(c.totalRevenue) : <span className="text-[#C0BEBA]">—</span>}
-                      </td>
-                      <td className="px-5 py-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <span className="text-xs text-[#878681]">
-                            {c.lastVisit ? formatDate(c.lastVisit).split(' ')[0] : <span className="text-[#C0BEBA]">—</span>}
-                          </span>
-                          {expanded === c.id
-                            ? <ChevronUp className="h-3.5 w-3.5 text-[#878681]" />
-                            : <ChevronDown className="h-3.5 w-3.5 text-[#878681]" />
-                          }
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      {c.phone ? (
+                        <div className="flex items-center gap-1.5 text-[#878681]">
+                          <Phone className="h-3.5 w-3.5 shrink-0" />
+                          <span className="font-mono text-sm">{c.phone}</span>
                         </div>
-                      </td>
-                    </tr>
-                    {expanded === c.id && <ExpandedRow customer={c} />}
-                  </Fragment>
+                      ) : (
+                        <span className="text-[#C0BEBA] text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <span className="inline-flex items-center gap-1 text-sm text-[#2D2D2D]">
+                        <Car className="h-3.5 w-3.5 text-[#878681]" />
+                        {c.vehicleCount}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <span className={`text-sm font-semibold ${c.totalOrders > 0 ? 'text-[#2D2D2D]' : 'text-[#C0BEBA]'}`}>
+                        {c.totalOrders}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-right font-mono font-semibold text-[#2D2D2D]">
+                      {c.totalRevenue > 0 ? formatCurrency(c.totalRevenue) : <span className="text-[#C0BEBA]">—</span>}
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <span className="text-xs text-[#878681]">
+                          {c.lastVisit ? formatDate(c.lastVisit).split(' ')[0] : <span className="text-[#C0BEBA]">—</span>}
+                        </span>
+                        <ChevronRight className="h-3.5 w-3.5 text-[#C0BEBA]" />
+                      </div>
+                    </td>
+                  </tr>
                 ))}
                 {customers.length === 0 && (
                   <tr>
@@ -227,8 +162,8 @@ export default function CustomersPage() {
               page={apiPage}
               pageSize={pageSize}
               totalPages={totalPages}
-              onPageChange={(p) => { setApiPage(p); setExpanded(null); }}
-              onPageSizeChange={(s) => { setPageSize(s); setApiPage(1); setExpanded(null); }}
+              onPageChange={(p) => setApiPage(p)}
+              onPageSizeChange={(s) => { setPageSize(s); setApiPage(1); }}
             />
           </div>
         </div>
