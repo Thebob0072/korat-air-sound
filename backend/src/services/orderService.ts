@@ -198,6 +198,37 @@ export async function markInProgress(orderId: string) {
   });
 }
 
+// ── unpayOrder ────────────────────────────────────────────────────────────────
+
+export async function unpayOrder(orderId: string) {
+  return prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({
+      where: { id: orderId },
+      include: { orderItems: { include: { product: true } } },
+    });
+    if (!order) throw new AppError(404, 'Order not found');
+    if (order.status !== 'Paid') throw new AppError(400, 'Order is not paid');
+
+    // Add stock back for real (non-service) products
+    for (const item of order.orderItems) {
+      if (!item.productId || !item.product || item.product.isService) continue;
+      await tx.product.update({
+        where: { id: item.productId },
+        data: { stockQuantity: { increment: item.quantity } },
+      });
+    }
+
+    return tx.order.update({
+      where: { id: orderId },
+      data: { status: 'Ready' },
+      include: {
+        vehicle: { include: { customer: true } },
+        orderItems: { include: { product: true } },
+      },
+    });
+  });
+}
+
 // ── processPayment ────────────────────────────────────────────────────────────
 
 /**

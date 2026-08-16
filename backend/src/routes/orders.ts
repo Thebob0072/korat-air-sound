@@ -6,6 +6,7 @@ import { AppError } from '../middleware/errorHandler';
 import {
   generateOrderNumber,
   processPayment,
+  unpayOrder,
   markInProgress,
   submitOrder,
 } from '../services/orderService';
@@ -270,6 +271,16 @@ router.delete('/:id', async (req: Request, res: Response, next: NextFunction) =>
 router.post('/:id/pay', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const order = await processPayment(req.params.id);
+    res.json(order);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** POST /api/orders/:id/unpay — revert Paid → Ready, restore stock */
+router.post('/:id/unpay', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const order = await unpayOrder(req.params.id);
     res.json(order);
   } catch (err) {
     next(err);

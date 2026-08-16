@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft, Printer, Plus, Trash2, CreditCard, Loader2, Search, FileText, Bluetooth, BluetoothOff } from 'lucide-react';
+import { ChevronLeft, Printer, Plus, Trash2, CreditCard, Loader2, Search, FileText, Bluetooth, BluetoothOff, Banknote, Smartphone, QrCode, X, RotateCcw } from 'lucide-react';
+import QRCode from 'react-qr-code';
+import generatePayload from 'promptpay-qr';
 import { BillPreviewModal } from '@/components/BillPreviewModal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +25,7 @@ import {
   removeOrderItem,
   updateOrderStatus,
   processPayment,
+  unpayOrder,
 } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { useBluetoothPrinter } from '@/hooks/useBluetoothPrinter';
@@ -82,6 +85,9 @@ export default function OrderDetailPage() {
   const [showAddItem, setShowAddItem] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [showPayConfirm, setShowPayConfirm] = useState(false);
+  const [payMethod, setPayMethod] = useState<'cash' | 'transfer'>('cash');
+  const [cashReceived, setCashReceived] = useState('');
+  const [showUnpayConfirm, setShowUnpayConfirm] = useState(false);
 
   const [showBillPreview, setShowBillPreview] = useState(false);
   const [billPreviewDocType, setBillPreviewDocType] = useState<'receipt' | 'quotation' | 'invoice'>('quotation');
@@ -155,8 +161,19 @@ export default function OrderDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
       setShowPayConfirm(false);
+      setCashReceived('');
       setBillPreviewDocType('receipt');
       setShowBillPreview(true);
+    },
+  });
+
+  const unpayMutation = useMutation({
+    mutationFn: () => unpayOrder(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['order', id] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      setShowUnpayConfirm(false);
     },
   });
 
@@ -177,7 +194,8 @@ export default function OrderDetailPage() {
     addItemMutation.isPending ||
     removeItemMutation.isPending ||
     markQuotedMutation.isPending ||
-    payMutation.isPending;
+    payMutation.isPending ||
+    unpayMutation.isPending;
 
   // Auto-open receipt PDF dialog when navigated from checkout with ?receipt=1
   useEffect(() => {
@@ -264,6 +282,17 @@ export default function OrderDetailPage() {
               <Button onClick={() => setShowPayConfirm(true)} disabled={isAnyMutating}>
                 <CreditCard className="h-4 w-4 mr-2" />
                 ชำระเงิน
+              </Button>
+            )}
+            {order.status === 'Paid' && (
+              <Button
+                variant="outline"
+                onClick={() => setShowUnpayConfirm(true)}
+                disabled={isAnyMutating}
+                className="text-[#878681] border-[#E5E5E3] hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                ยกเลิกการชำระ
               </Button>
             )}
             {hasItems && order.status !== 'Cancelled' && (
@@ -517,23 +546,153 @@ export default function OrderDetailPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* ── Payment confirmation ──────────────────────────────────────────────────── */}
-      <AlertDialog open={showPayConfirm} onOpenChange={setShowPayConfirm}>
+      {/* ── Payment modal ────────────────────────────────────────────────────── */}
+      {showPayConfirm && order && (() => {
+        const total = Number(order.totalAmount);
+        const change = Math.max(0, Number(cashReceived) - total);
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+            onClick={() => { if (!payMutation.isPending) { setShowPayConfirm(false); setCashReceived(''); } }}
+          >
+            <div
+              className="bg-white rounded-[24px] w-full max-w-sm shadow-[0_20px_60px_rgb(0,0,0,0.2)] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0EDE8]">
+                <div>
+                  <p className="text-base font-bold text-[#2D2D2D]">ชำระเงิน</p>
+                  <p className="text-xs text-[#878681] font-mono mt-0.5">{order.orderNumber}</p>
+                  {order.vehicle && (
+                    <p className="text-xs text-[#2D2D2D] font-semibold mt-1">
+                      {[order.vehicle.brand, order.vehicle.model].filter(Boolean).join(' ')}
+                      {' '}
+                      <span className="font-mono font-normal text-[#878681]">{order.vehicle.licensePlate}</span>
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => { setShowPayConfirm(false); setCashReceived(''); }}
+                  disabled={payMutation.isPending}
+                  className="h-8 w-8 rounded-full flex items-center justify-center text-[#878681] hover:bg-[#F0EDE8] transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="px-5 py-4 space-y-4">
+                {/* Total */}
+                <div className="bg-[#F7F5F2] rounded-2xl px-4 py-3 flex items-baseline justify-between">
+                  <span className="text-sm text-[#878681]">ยอดรวม</span>
+                  <span className="font-mono text-2xl font-black text-[#2D2D2D]">{formatCurrency(total)}</span>
+                </div>
+
+                {/* Method toggle */}
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { value: 'cash' as const, label: 'เงินสด', Icon: Banknote },
+                    { value: 'transfer' as const, label: 'โอนเงิน', Icon: Smartphone },
+                  ]).map(({ value, label, Icon }) => (
+                    <button
+                      key={value}
+                      onClick={() => setPayMethod(value)}
+                      className={`flex items-center justify-center gap-2 h-11 border-2 rounded-2xl text-sm font-semibold transition-all ${
+                        payMethod === value
+                          ? 'border-[#3B3A36] bg-[#3B3A36] text-white'
+                          : 'border-[#E5E5E3] text-[#878681] hover:border-[#3B3A36] hover:text-[#2D2D2D]'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* QR code */}
+                {payMethod === 'transfer' && (
+                  <div className="flex flex-col items-center gap-3 bg-[#F7F7F5] rounded-2xl py-5">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-[#878681]">
+                      <QrCode className="h-3.5 w-3.5" />
+                      สแกน PromptPay เพื่อชำระ
+                    </div>
+                    <div className="bg-white p-3 rounded-2xl shadow-sm">
+                      <QRCode value={generatePayload('0933218634', { amount: total })} size={160} level="M" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-semibold text-[#2D2D2D]">093-321-8634</p>
+                      <p className="text-xs text-[#878681] mt-0.5">โอนมา <span className="font-bold text-[#2D2D2D]">{formatCurrency(total)}</span></p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Cash received */}
+                {payMethod === 'cash' && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-[#2D2D2D]">รับเงินมา (บาท)</label>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      value={cashReceived}
+                      onChange={(e) => setCashReceived(e.target.value)}
+                      placeholder={String(total)}
+                      className="w-full h-11 px-4 text-sm bg-[#F7F5F2] border-0 rounded-2xl focus:ring-2 focus:ring-[#3B3A36]/15 focus:outline-none font-mono"
+                      autoFocus
+                    />
+                    {cashReceived && Number(cashReceived) >= total && (
+                      <div className="flex justify-between text-sm px-1">
+                        <span className="text-[#878681]">เงินทอน</span>
+                        <span className="font-mono font-bold text-emerald-600">{formatCurrency(change)}</span>
+                      </div>
+                    )}
+                    {cashReceived && Number(cashReceived) < total && (
+                      <p className="text-xs text-red-500 px-1">รับเงินไม่พอ ขาดอีก {formatCurrency(total - Number(cashReceived))}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="px-5 pb-5 flex gap-2">
+                <button
+                  onClick={() => { setShowPayConfirm(false); setCashReceived(''); }}
+                  disabled={payMutation.isPending}
+                  className="flex-1 h-12 bg-[#F0EDE8] hover:bg-[#E5E5E3] text-[#878681] text-sm font-semibold rounded-2xl transition-all disabled:opacity-40"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={() => payMutation.mutate()}
+                  disabled={payMutation.isPending}
+                  className="flex-1 h-12 bg-[#3B3A36] hover:opacity-90 text-white text-sm font-bold rounded-2xl transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+                >
+                  {payMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+                  ยืนยันชำระ
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Unpay confirmation ────────────────────────────────────────────────── */}
+      <AlertDialog open={showUnpayConfirm} onOpenChange={setShowUnpayConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>ยืนยันการชำระเงิน</AlertDialogTitle>
+            <AlertDialogTitle>ยกเลิกการชำระเงิน?</AlertDialogTitle>
             <AlertDialogDescription>
-              ระบบจะตัดสต๊อกสินค้าอัตโนมัติ กรุณาตรวจสอบรายการให้ครบถ้วนก่อนยืนยัน
+              ออเดอร์จะกลับเป็นสถานะ "รอส่งมอบ" และระบบจะคืนสต็อกสินค้าอัตโนมัติ
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={payMutation.isPending}>ยกเลิก</AlertDialogCancel>
+            <AlertDialogCancel disabled={unpayMutation.isPending}>ยกเลิก</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => payMutation.mutate()}
-              disabled={payMutation.isPending}
+              onClick={() => unpayMutation.mutate()}
+              disabled={unpayMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {payMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              ชำระเงิน
+              {unpayMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              ยืนยัน ยกเลิกชำระ
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

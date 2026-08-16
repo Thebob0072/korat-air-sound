@@ -95,6 +95,9 @@ export const removeOrderItem = (orderId: string, itemId: string) =>
 export const processPayment = (orderId: string) =>
   api.post<Order>(`/orders/${orderId}/pay`).then((r) => r.data);
 
+export const unpayOrder = (orderId: string) =>
+  api.post<Order>(`/orders/${orderId}/unpay`).then((r) => r.data);
+
 // ─── Reports ───────────────────────────────────────────────────────────────────────────────
 
 export interface ReportSummary {

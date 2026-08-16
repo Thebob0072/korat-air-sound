@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import Navbar from '@/components/Navbar';
+import Sidebar from '@/components/Sidebar';
 import POSDashboard from '@/pages/POSDashboard';
 import Dashboard from '@/pages/Dashboard';
 import OrdersPage from '@/pages/OrdersPage';
@@ -25,29 +25,32 @@ function BusinessGuard({ children }: { children: React.ReactNode }) {
 function AppInner() {
   return (
     <Routes>
-      {/* Business selection — no Navbar, no guard */}
+      {/* Business selection — standalone page, no sidebar */}
       <Route path="/select" element={<BusinessSelectPage />} />
 
-      {/* All app routes — guarded */}
+      {/* All app routes — guarded, with sidebar */}
       <Route
         path="*"
         element={
           <BusinessGuard>
-            <div className="min-h-screen bg-[#ECEAE6]">
-              <Navbar />
-              <main className="mx-auto px-4 sm:px-8 py-6 sm:py-8 max-w-screen-xl">
-                <Routes>
-                  <Route path="/" element={<POSDashboard />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/orders" element={<OrdersPage />} />
-                  <Route path="/orders/:id" element={<OrderDetailPage />} />
-                  <Route path="/products" element={<ProductsPage />} />
-                  <Route path="/customers" element={<CustomersPage />} />
-                  <Route path="/customers/:id" element={<CustomerDetailPage />} />
-                  <Route path="/receivables" element={<ReceivablesPage />} />
-                  <Route path="/reports" element={<ReportsPage />} />
-                </Routes>
-              </main>
+            <div className="flex min-h-screen bg-[#ECEAE6]">
+              <Sidebar />
+              {/* pt-12 = height of mobile top bar; removed on lg+ */}
+              <div className="flex-1 flex flex-col min-w-0 pt-12 lg:pt-0">
+                <main className="flex-1 mx-auto px-4 sm:px-8 py-6 sm:py-8 max-w-screen-xl w-full">
+                  <Routes>
+                    <Route path="/" element={<POSDashboard />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/orders" element={<OrdersPage />} />
+                    <Route path="/orders/:id" element={<OrderDetailPage />} />
+                    <Route path="/products" element={<ProductsPage />} />
+                    <Route path="/customers" element={<CustomersPage />} />
+                    <Route path="/customers/:id" element={<CustomerDetailPage />} />
+                    <Route path="/receivables" element={<ReceivablesPage />} />
+                    <Route path="/reports" element={<ReportsPage />} />
+                  </Routes>
+                </main>
+              </div>
             </div>
           </BusinessGuard>
         }

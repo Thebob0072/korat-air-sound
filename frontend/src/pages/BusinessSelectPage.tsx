@@ -173,7 +173,7 @@ export default function BusinessSelectPage() {
   const { businesses, selected, selectBusiness, createBusiness, editBusiness, removeBusiness } = useBusiness();
   const [modal, setModal] = useState<Modal>(null);
 
-  const from = (location.state as { from?: string } | null)?.from ?? '/dashboard';
+  const from = (location.state as { from?: string } | null)?.from ?? '/';
 
   const handleSelect = (id: string) => {
     selectBusiness(id);
