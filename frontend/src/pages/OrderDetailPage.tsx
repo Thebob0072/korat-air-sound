@@ -225,6 +225,7 @@ export default function OrderDetailPage() {
   }
 
   const canEdit = order.status === 'Draft' || order.status === 'Quoted';
+  const canPay = ['Quoted', 'InProgress', 'WaitingForParts', 'Ready'].includes(order.status);
   const isEditable = canEdit && editMode;
   const hasItems = (order.orderItems?.length ?? 0) > 0;
 
@@ -272,16 +273,10 @@ export default function OrderDetailPage() {
                 ออกใบเสนอราคา
               </Button>
             )}
-            {canEdit && hasItems && (
+            {(canPay || order.status === 'InvoicePending') && hasItems && (
               <Button onClick={() => setShowPayConfirm(true)} disabled={isAnyMutating}>
                 <CreditCard className="h-4 w-4 mr-2" />
-                ชำระเงิน
-              </Button>
-            )}
-            {order.status === 'InvoicePending' && (
-              <Button onClick={() => setShowPayConfirm(true)} disabled={isAnyMutating}>
-                <CreditCard className="h-4 w-4 mr-2" />
-                ชำระเงิน
+                {order.status === 'Ready' ? 'ชำระเงินส่งมอบ' : 'ชำระเงิน'}
               </Button>
             )}
             {order.status === 'Paid' && (
