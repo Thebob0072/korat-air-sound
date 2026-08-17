@@ -11,6 +11,8 @@ import CustomersPage from '@/pages/CustomersPage';
 import CustomerDetailPage from '@/pages/CustomerDetailPage';
 import ReceivablesPage from '@/pages/ReceivablesPage';
 import BusinessSelectPage from '@/pages/BusinessSelectPage';
+import LandingPage from '@/pages/LandingPage';
+import SignupPage from '@/pages/SignupPage';
 import { BusinessProvider, useBusiness } from '@/context/BusinessContext';
 
 function BusinessGuard({ children }: { children: React.ReactNode }) {
@@ -25,6 +27,9 @@ function BusinessGuard({ children }: { children: React.ReactNode }) {
 function AppInner() {
   return (
     <Routes>
+      {/* Public pages — no sidebar */}
+      <Route path="/landing" element={<LandingPage />} />
+      <Route path="/signup" element={<SignupPage />} />
       {/* Business selection — standalone page, no sidebar */}
       <Route path="/select" element={<BusinessSelectPage />} />
 
