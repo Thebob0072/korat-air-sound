@@ -46,11 +46,11 @@ import { ProductCategory } from '@/types';
 // ── Category config ───────────────────────────────────────────────────────────
 
 const CATS = [
-  { value: ProductCategory.AirCon,     label: 'ระบบแอร์',      Icon: Wind,     iconBg: 'bg-sky-100',    iconFg: 'text-sky-600',    accent: 'border-sky-300',    airconSpecial: true },
-  { value: ProductCategory.Tint,        label: 'ฟิล์มกรองแสง', Icon: Eye,      iconBg: 'bg-violet-100', iconFg: 'text-violet-600', accent: 'border-violet-300', tintSpecial: true },
-  { value: ProductCategory.Glass,       label: 'กระจกรถยนต์',  Icon: GlassIcon,iconBg: 'bg-teal-100',   iconFg: 'text-teal-600',   accent: 'border-teal-300',   glassSpecial: true },
-  { value: ProductCategory.Sound,       label: 'เครื่องเสียง', Icon: Volume2,  iconBg: 'bg-orange-100', iconFg: 'text-orange-600', accent: 'border-orange-300', soundSpecial: true },
-  { value: ProductCategory.ServiceFee,  label: 'อื่นๆ / ค่าแรง',Icon: Wrench,  iconBg: 'bg-stone-100',  iconFg: 'text-stone-500',  accent: 'border-stone-300',  otherSpecial: true },
+  { value: ProductCategory.AirCon,     label: 'ระบบแอร์',      Icon: Wind,     iconBg: 'bg-sky-200',    iconFg: 'text-sky-700',    chipBg: 'bg-sky-50 border-sky-200 hover:bg-sky-100 hover:border-sky-300',    labelFg: 'text-sky-800',    airconSpecial: true },
+  { value: ProductCategory.Tint,        label: 'ฟิล์มกรองแสง', Icon: Eye,      iconBg: 'bg-violet-200', iconFg: 'text-violet-700', chipBg: 'bg-violet-50 border-violet-200 hover:bg-violet-100 hover:border-violet-300', labelFg: 'text-violet-800', tintSpecial: true },
+  { value: ProductCategory.Glass,       label: 'กระจกรถยนต์',  Icon: GlassIcon,iconBg: 'bg-teal-200',   iconFg: 'text-teal-700',   chipBg: 'bg-teal-50 border-teal-200 hover:bg-teal-100 hover:border-teal-300',   labelFg: 'text-teal-800',   glassSpecial: true },
+  { value: ProductCategory.Sound,       label: 'เครื่องเสียง', Icon: Volume2,  iconBg: 'bg-orange-200', iconFg: 'text-orange-700', chipBg: 'bg-orange-50 border-orange-200 hover:bg-orange-100 hover:border-orange-300', labelFg: 'text-orange-800', soundSpecial: true },
+  { value: ProductCategory.ServiceFee,  label: 'อื่นๆ / ค่าแรง',Icon: Wrench,  iconBg: 'bg-stone-200',  iconFg: 'text-stone-600',  chipBg: 'bg-stone-50 border-stone-200 hover:bg-stone-100 hover:border-stone-300',  labelFg: 'text-stone-700',  otherSpecial: true },
 ];
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -201,7 +201,7 @@ export default function POSDashboard() {
 
   return (
     <>
-      <div className="fixed inset-0 top-14 overflow-hidden bg-[#ECEAE6]" style={{ zIndex: 10 }}>
+      <div className="fixed top-12 lg:top-0 left-0 lg:left-60 right-0 bottom-0 overflow-hidden bg-white" style={{ zIndex: 10 }}>
       <div className="flex flex-col h-full max-w-[1440px] mx-auto overflow-hidden">
 
         {/* Bill tabs */}
@@ -219,14 +219,14 @@ export default function POSDashboard() {
                   Object.keys(bills).length > 1 ? 'pr-1.5' : 'pr-3',
                   isActive
                     ? 'bg-[#3B3A36] text-white cursor-default'
-                    : 'bg-white/70 text-[#878681] hover:bg-white hover:text-[#2D2D2D] cursor-pointer',
+                    : 'bg-white/70 text-[#4A4845] hover:bg-white hover:text-[#111110] cursor-pointer',
                 )}
               >
                 <span className="max-w-[100px] truncate">{tabLabel}</span>
                 {itemCount > 0 && (
                   <span className={cn(
                     'text-[10px] font-bold px-1.5 rounded-full tabular-nums',
-                    isActive ? 'bg-white/20 text-white' : 'bg-[#F0EDE8] text-[#878681]',
+                    isActive ? 'bg-white/20 text-white' : 'bg-[#F0EDE8] text-[#4A4845]',
                   )}>
                     {itemCount}
                   </span>
@@ -238,7 +238,7 @@ export default function POSDashboard() {
                       'h-5 w-5 rounded-lg flex items-center justify-center transition-colors shrink-0',
                       isActive
                         ? 'text-white/50 hover:text-white hover:bg-white/15'
-                        : 'text-[#C0BEBA] hover:text-[#878681] hover:bg-[#E5E5E3]',
+                        : 'text-[#6B6865] hover:text-[#4A4845] hover:bg-[#E5E5E3]',
                     )}
                     aria-label="ปิดบิล"
                   >
@@ -251,7 +251,7 @@ export default function POSDashboard() {
           {Object.keys(bills).length < 8 && (
             <button
               onClick={createBill}
-              className="flex items-center justify-center h-8 w-8 rounded-xl bg-white/50 hover:bg-white text-[#878681] hover:text-[#2D2D2D] shrink-0 transition-all duration-200 ml-0.5"
+              className="flex items-center justify-center h-8 w-8 rounded-xl bg-white/50 hover:bg-white text-[#4A4845] hover:text-[#111110] shrink-0 transition-all duration-200 ml-0.5"
               aria-label="เปิดบิลใหม่"
             >
               <Plus className="h-3.5 w-3.5" />
@@ -269,10 +269,10 @@ export default function POSDashboard() {
         )}>
 
           {/* Vehicle search */}
-          <div className="px-3 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4 space-y-3">
+          <div className="px-3 sm:px-6 pt-3 sm:pt-4 pb-2.5 sm:pb-3 space-y-2.5">
             <div className="flex gap-2 max-w-2xl">
               <div className="relative flex-1">
-                <Car className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#878681] pointer-events-none" />
+                <Car className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#4A4845] pointer-events-none" />
                 <input
                   ref={vehicleInputRef}
                   type="text"
@@ -280,7 +280,7 @@ export default function POSDashboard() {
                   onChange={(e) => { setQuery(e.target.value); setSearchResults([]); setSearchError(''); }}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); if (e.key === 'Escape') setSearchResults([]); }}
                   placeholder="พิมพ์เลขทะเบียนรถ / เบอร์โทร..."
-                  className="w-full h-12 pl-12 pr-4 text-sm font-medium text-[#2D2D2D] bg-white rounded-full shadow-[0_2px_12px_rgb(0,0,0,0.06)] border-0 focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all duration-300 placeholder:text-[#878681] placeholder:font-normal"
+                  className="w-full h-12 pl-12 pr-4 text-sm font-medium text-[#111110] bg-white rounded-full shadow-[0_2px_12px_rgb(0,0,0,0.06)] border-0 focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all duration-300 placeholder:text-[#4A4845] placeholder:font-normal"
                   disabled={isSearching}
                   autoComplete="off"
                 />
@@ -312,8 +312,8 @@ export default function POSDashboard() {
             {searchResults.length > 1 && (
               <div className="bg-[#FDFCFA] rounded-2xl shadow-[0_8px_32px_rgb(0,0,0,0.10)] overflow-hidden border border-[#E8E4DF]">
                 <div className="px-4 py-2.5 flex items-center gap-2 border-b border-[#EAE7E2]">
-                  <Car className="h-3.5 w-3.5 text-[#878681]" />
-                  <p className="text-xs font-semibold text-[#878681]">พบ {searchResults.length} คัน — เลือกรถ</p>
+                  <Car className="h-3.5 w-3.5 text-[#4A4845]" />
+                  <p className="text-xs font-semibold text-[#4A4845]">พบ {searchResults.length} คัน — เลือกรถ</p>
                 </div>
                 {searchResults.map((v) => (
                   <button
@@ -325,8 +325,8 @@ export default function POSDashboard() {
                       <Car className="h-4 w-4 text-[#3B3A36]" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-bold font-mono tracking-wide text-[#2D2D2D] leading-none">{v.licensePlate}</p>
-                      <p className="text-xs text-[#878681] mt-0.5">{[v.brand, v.model, v.customer?.name].filter(Boolean).join(' · ')}</p>
+                      <p className="text-sm font-bold font-mono tracking-wide text-[#111110] leading-none">{v.licensePlate}</p>
+                      <p className="text-xs text-[#4A4845] mt-0.5">{[v.brand, v.model, v.customer?.name].filter(Boolean).join(' · ')}</p>
                     </div>
                   </button>
                 ))}
@@ -336,16 +336,16 @@ export default function POSDashboard() {
             {vehicle && searchResults.length === 0 && (
               <div className="flex items-center gap-4 bg-white rounded-[20px] px-5 py-3.5 shadow-[0_2px_12px_rgb(0,0,0,0.05)] border border-[#E5E5E3]">
                 <div className="flex-1 min-w-0">
-                  <p className="font-mono font-black text-xl tracking-[0.12em] text-[#2D2D2D] leading-none">
+                  <p className="font-mono font-black text-xl tracking-[0.12em] text-[#111110] leading-none">
                     {vehicle.licensePlate}
                   </p>
-                  <p className="text-xs text-[#878681] mt-1">
+                  <p className="text-xs text-[#4A4845] mt-1">
                     {[vehicle.brand && `${vehicle.brand} ${vehicle.model}`, vehicle.customer?.name, vehicle.customer?.phone].filter(Boolean).join(' · ')}
                   </p>
                 </div>
                 <button
                   onClick={handleNewCustomer}
-                  className="flex items-center gap-1.5 text-xs text-[#878681] hover:text-[#2D2D2D] bg-[#F7F7F5] hover:bg-[#E5E5E3] rounded-full px-4 py-2 transition-all duration-200 font-medium shrink-0"
+                  className="flex items-center gap-1.5 text-xs text-[#4A4845] hover:text-[#111110] bg-[#F7F7F5] hover:bg-[#E5E5E3] rounded-full px-4 py-2 transition-all duration-200 font-medium shrink-0"
                 >
                   <RotateCcw className="h-3 w-3" />
                   เปลี่ยน
@@ -355,9 +355,9 @@ export default function POSDashboard() {
           </div>
 
           {/* Product search */}
-          <div className="px-3 sm:px-6 pb-3 sm:pb-4">
+          <div className="px-3 sm:px-6 pb-2.5 sm:pb-3">
             <div className="relative max-w-2xl" ref={suggestionsRef}>
-              <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#878681] pointer-events-none" />
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#4A4845] pointer-events-none" />
               <input
                 ref={productInputRef}
                 type="text"
@@ -366,13 +366,13 @@ export default function POSDashboard() {
                 onFocus={() => productQuery.length > 0 && setShowSuggestions(true)}
                 onKeyDown={(e) => { if (e.key === 'Escape') { setProductQuery(''); setShowSuggestions(false); } }}
                 placeholder="ค้นหาสินค้า / รหัสสินค้า..."
-                className="w-full h-12 pl-12 pr-10 text-sm font-medium text-[#2D2D2D] bg-white rounded-full shadow-[0_2px_12px_rgb(0,0,0,0.06)] border-0 focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all duration-300 placeholder:text-[#878681] placeholder:font-normal"
+                className="w-full h-12 pl-12 pr-10 text-sm font-medium text-[#111110] bg-white rounded-full shadow-[0_2px_12px_rgb(0,0,0,0.06)] border-0 focus:outline-none focus:ring-2 focus:ring-[#3B3A36]/15 transition-all duration-300 placeholder:text-[#4A4845] placeholder:font-normal"
                 autoComplete="off"
               />
               {productQuery && (
                 <button
                   onClick={() => { setProductQuery(''); setShowSuggestions(false); productInputRef.current?.focus(); }}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#878681] hover:text-[#2D2D2D] transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#4A4845] hover:text-[#111110] transition-colors"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -404,13 +404,13 @@ export default function POSDashboard() {
                         } border-b border-[#EAE7E2] last:border-b-0`}
                       >
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-medium leading-snug ${inBill ? 'text-[#3B3A36]' : 'text-[#2D2D2D]'}`}>
+                          <p className={`text-sm font-medium leading-snug ${inBill ? 'text-[#3B3A36]' : 'text-[#111110]'}`}>
                             {product.name}
                           </p>
-                          <p className="text-xs text-[#878681] mt-0.5">{product.sku}</p>
+                          <p className="text-xs text-[#4A4845] mt-0.5">{product.sku}</p>
                         </div>
                         <div className="text-right shrink-0 space-y-0.5">
-                          <p className="text-sm font-mono font-semibold text-[#2D2D2D]">{formatCurrency(product.sellingPrice)}</p>
+                          <p className="text-sm font-mono font-semibold text-[#111110]">{formatCurrency(product.sellingPrice)}</p>
                           {inBill && (
                             <p className="text-[10px] font-semibold text-[#5C6B62] bg-[#5C6B62]/10 rounded-full px-2 py-0.5">✓ ×{inBill.quantity}</p>
                           )}
@@ -420,7 +420,7 @@ export default function POSDashboard() {
                     );
                   })}
                   {suggestions.length > 12 && (
-                    <div className="px-4 py-2.5 text-xs text-[#878681] text-center bg-[#F0EDE8] border-t border-[#EAE7E2]">
+                    <div className="px-4 py-2.5 text-xs text-[#4A4845] text-center bg-[#F0EDE8] border-t border-[#EAE7E2]">
                       อีก {suggestions.length - 12} รายการ — พิมพ์ให้ละเอียดขึ้น
                     </div>
                   )}
@@ -428,17 +428,17 @@ export default function POSDashboard() {
               )}
               {showSuggestions && productQuery.length > 0 && suggestions.length === 0 && (
                 <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-[#FDFCFA] rounded-2xl shadow-[0_12px_40px_rgb(0,0,0,0.12)] border border-[#E8E4DF] px-5 py-5 flex items-center gap-3">
-                  <Search className="h-4 w-4 text-[#C0BEBA] shrink-0" />
-                  <p className="text-sm text-[#878681]">ไม่พบสินค้า &ldquo;{productQuery}&rdquo;</p>
+                  <Search className="h-4 w-4 text-[#6B6865] shrink-0" />
+                  <p className="text-sm text-[#4A4845]">ไม่พบสินค้า &ldquo;{productQuery}&rdquo;</p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Category grid */}
-          <div className="px-3 sm:px-6 pb-3 sm:pb-4">
-            <p className="text-[10px] font-semibold text-[#C0BEBA] uppercase tracking-[0.14em] mb-2.5">เลือกบริการ</p>
-            <div className="grid grid-cols-5 gap-2">
+          {/* Category chips */}
+          <div className="px-3 sm:px-6 pb-3">
+            <div className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <span className="text-[10px] font-semibold text-[#6B6865] uppercase tracking-[0.1em] shrink-0">บริการ</span>
               {CATS.map((cat) => {
                 const Icon = cat.Icon;
                 const handleClick = () => {
@@ -455,14 +455,12 @@ export default function POSDashboard() {
                   <button
                     key={cat.value}
                     onClick={handleClick}
-                    className={`flex flex-col items-center gap-1.5 pt-3 pb-2.5 rounded-2xl bg-white border-t-2 ${cat.accent} shadow-[0_2px_8px_rgb(0,0,0,0.05)] hover:shadow-[0_8px_24px_rgb(0,0,0,0.1)] active:scale-[0.95] transition-all duration-200 group`}
+                    className={`flex items-center gap-2 pl-2.5 pr-4 h-9 rounded-full border shrink-0 active:scale-[0.96] transition-all duration-150 ${cat.chipBg}`}
                   >
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-transform duration-200 group-active:scale-90 ${cat.iconBg}`}>
-                      <Icon className={`h-[18px] w-[18px] ${cat.iconFg}`} strokeWidth={1.75} />
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${cat.iconBg}`}>
+                      <Icon className={`h-3 w-3 ${cat.iconFg}`} strokeWidth={2} />
                     </div>
-                    <span className="text-center leading-tight text-[9px] sm:text-[10px] font-semibold text-[#4A4845]">
-                      {cat.label}
-                    </span>
+                    <span className={`text-[12px] font-medium whitespace-nowrap ${cat.labelFg}`}>{cat.label}</span>
                   </button>
                 );
               })}
@@ -474,11 +472,11 @@ export default function POSDashboard() {
             {listProducts.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full select-none gap-3 pb-8">
                 <div className="w-14 h-14 rounded-2xl bg-white shadow-[0_2px_12px_rgb(0,0,0,0.06)] flex items-center justify-center">
-                  <Search className="h-6 w-6 text-[#C0BEBA]" strokeWidth={1.5} />
+                  <Search className="h-6 w-6 text-[#6B6865]" strokeWidth={1.5} />
                 </div>
                 <div className="text-center space-y-1">
-                  <p className="text-sm font-medium text-[#878681]">เลือกบริการด้านบน</p>
-                  <p className="text-xs text-[#C0BEBA]">หรือพิมพ์ค้นหาสินค้าได้เลย</p>
+                  <p className="text-sm font-medium text-[#4A4845]">เลือกบริการด้านบน</p>
+                  <p className="text-xs text-[#6B6865]">หรือพิมพ์ค้นหาสินค้าได้เลย</p>
                 </div>
               </div>
             ) : (
@@ -499,14 +497,14 @@ export default function POSDashboard() {
                       }`}
                     >
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium leading-snug ${inBill ? 'text-white' : 'text-[#2D2D2D]'}`}>
+                        <p className={`text-sm font-medium leading-snug ${inBill ? 'text-white' : 'text-[#111110]'}`}>
                           {product.name}
                         </p>
-                        <p className={`text-xs mt-0.5 ${inBill ? 'text-white/50' : 'text-[#878681]'}`}>
+                        <p className={`text-xs mt-0.5 ${inBill ? 'text-white/50' : 'text-[#4A4845]'}`}>
                           {product.sku}{product.stockQuantity !== 9999 && ` · ${product.stockQuantity} ชิ้น`}
                         </p>
                       </div>
-                      <p className={`text-sm font-mono font-semibold shrink-0 tabular-nums ${inBill ? 'text-white/80' : 'text-[#2D2D2D]'}`}>
+                      <p className={`text-sm font-mono font-semibold shrink-0 tabular-nums ${inBill ? 'text-white/80' : 'text-[#111110]'}`}>
                         {formatCurrency(product.sellingPrice)}
                       </p>
                       {inBill ? (
@@ -516,7 +514,7 @@ export default function POSDashboard() {
                           <button onClick={() => updateQuantity(inBill.id, inBill.quantity + 1)} className="h-7 w-7 bg-white/15 hover:bg-white/25 text-white rounded-xl flex items-center justify-center transition-all duration-200" aria-label="เพิ่มจำนวน"><Plus className="h-3 w-3" /></button>
                         </div>
                       ) : (
-                        <div className="h-7 w-7 bg-[#F7F7F5] text-[#878681] rounded-xl flex items-center justify-center shrink-0 pointer-events-none">
+                        <div className="h-7 w-7 bg-[#F7F7F5] text-[#4A4845] rounded-xl flex items-center justify-center shrink-0 pointer-events-none">
                           <Plus className="h-3.5 w-3.5" />
                         </div>
                       )}
@@ -530,13 +528,13 @@ export default function POSDashboard() {
 
         {/* RIGHT PANEL — BILL (floating receipt card) */}
         <div className={cn(
-          'shrink-0 flex-col p-3 sm:p-5 bg-[#ECEAE6]',
+          'shrink-0 flex-col p-3 sm:p-5 bg-white',
           'w-full lg:w-[360px] xl:w-[420px]',
           billView ? 'flex' : 'hidden lg:flex',
         )}>
           {/* Mobile back button */}
           <button
-            className="lg:hidden flex items-center gap-1.5 text-sm text-[#878681] mb-2 font-medium py-1"
+            className="lg:hidden flex items-center gap-1.5 text-sm text-[#4A4845] mb-2 font-medium py-1"
             onClick={() => setBillView(false)}
           >
             <ChevronLeft className="h-4 w-4" />
@@ -545,15 +543,15 @@ export default function POSDashboard() {
           <div className="flex-1 flex flex-col bg-white rounded-[24px] shadow-[0_8px_40px_rgb(0,0,0,0.12)] overflow-hidden">
 
             {/* Bill header */}
-            <div className="bg-[#F0EDE8] px-5 py-4 flex items-center justify-between shrink-0">
+            <div className="bg-[#2D2C28] px-5 py-4 flex items-center justify-between shrink-0">
               <div>
-                <p className="text-[11px] font-bold text-[#C0BEBA] tracking-[0.1em] uppercase">บิลปัจจุบัน</p>
-                <p className="text-sm font-bold text-[#2D2D2D] mt-0.5 leading-none">Korat Air &amp; Sound</p>
+                <p className="text-[11px] font-bold text-white/40 tracking-[0.1em] uppercase">บิลปัจจุบัน</p>
+                <p className="text-sm font-bold text-white mt-0.5 leading-none">Korat Air &amp; Sound</p>
               </div>
               {items.length > 0 && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <button className="text-xs text-[#C0BEBA] hover:text-rose-400 flex items-center gap-1 transition-colors duration-200">
+                    <button className="text-xs text-white/40 hover:text-rose-300 flex items-center gap-1 transition-colors duration-200">
                       <X className="h-3 w-3" />ล้างบิล
                     </button>
                   </AlertDialogTrigger>
@@ -583,21 +581,21 @@ export default function POSDashboard() {
                     </div>
                     <div className="min-w-0">
                       {(vehicle.brand || vehicle.model) && (
-                        <p className="text-xs font-semibold text-[#2D2D2D] truncate">
+                        <p className="text-xs font-semibold text-[#111110] truncate">
                           {[vehicle.brand, vehicle.model].filter(Boolean).join(' ')}
                         </p>
                       )}
                       {vehicle.customer?.name && (
-                        <p className="text-xs text-[#878681] truncate mt-0.5">{vehicle.customer.name}</p>
+                        <p className="text-xs text-[#4A4845] truncate mt-0.5">{vehicle.customer.name}</p>
                       )}
                       {!vehicle.brand && !vehicle.customer?.name && (
-                        <p className="text-xs text-[#C0BEBA]">ไม่มีข้อมูลเพิ่มเติม</p>
+                        <p className="text-xs text-[#6B6865]">ไม่มีข้อมูลเพิ่มเติม</p>
                       )}
                     </div>
                   </div>
                   <button
                     onClick={handleNewCustomer}
-                    className="flex items-center gap-1 text-[10px] text-[#C0BEBA] hover:text-[#878681] transition-colors shrink-0"
+                    className="flex items-center gap-1 text-[10px] text-[#6B6865] hover:text-[#4A4845] transition-colors shrink-0"
                   >
                     <RotateCcw className="h-3 w-3" />
                     เปลี่ยน
@@ -605,8 +603,8 @@ export default function POSDashboard() {
                 </div>
               ) : (
                 <div className="flex items-center gap-2.5 py-2.5 px-4 bg-white rounded-xl border border-dashed border-[#D8D5D0]">
-                  <Car className="h-4 w-4 text-[#C0BEBA]" />
-                  <p className="text-sm text-[#C0BEBA]">ค้นหาทะเบียนรถก่อนเพิ่มรายการ</p>
+                  <Car className="h-4 w-4 text-[#6B6865]" />
+                  <p className="text-sm text-[#6B6865]">ค้นหาทะเบียนรถก่อนเพิ่มรายการ</p>
                 </div>
               )}
             </div>
@@ -618,42 +616,42 @@ export default function POSDashboard() {
                   <div className="w-14 h-14 rounded-2xl bg-[#F0EDE8] flex items-center justify-center">
                     <FileText className="h-6 w-6 text-[#D8D5D0]" strokeWidth={1.5} />
                   </div>
-                  <p className="text-sm text-[#C0BEBA]">ยังไม่มีรายการในบิล</p>
+                  <p className="text-sm text-[#6B6865]">ยังไม่มีรายการในบิล</p>
                 </div>
               ) : (
                 <div className="px-5 pt-3 pb-2">
                   <div className="flex items-center gap-2 pb-2 border-b border-[#F0EDE8]">
-                    <p className="flex-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[#C0BEBA]">รายการ ({items.length})</p>
-                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#C0BEBA] w-20 text-right">รวม</p>
+                    <p className="flex-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[#6B6865]">รายการ ({items.length})</p>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#6B6865] w-20 text-right">รวม</p>
                     <div className="w-4" />
                   </div>
                   {items.map((item) => (
                     <div key={item.id} className="group flex items-start gap-3 py-3 border-b border-[#F7F5F2] last:border-0">
                       <div className="flex-1 min-w-0 pt-0.5">
-                        <p className="text-sm text-[#2D2D2D] font-semibold leading-snug">{item.product.name}</p>
+                        <p className="text-sm text-[#111110] font-semibold leading-snug">{item.product.name}</p>
                         <div className="flex items-center gap-2 mt-1.5">
                           <button onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                            className="h-6 w-6 rounded-lg bg-[#F0EDE8] hover:bg-[#E5E5E3] text-[#878681] hover:text-[#2D2D2D] flex items-center justify-center transition-all duration-200 shrink-0"
+                            className="h-6 w-6 rounded-lg bg-[#F0EDE8] hover:bg-[#E5E5E3] text-[#4A4845] hover:text-[#111110] flex items-center justify-center transition-all duration-200 shrink-0"
                             aria-label="ลดจำนวน">
                             <Minus className="h-3 w-3" />
                           </button>
-                          <span className="text-xs font-bold w-5 text-center text-[#2D2D2D] tabular-nums">{item.quantity}</span>
+                          <span className="text-xs font-bold w-5 text-center text-[#111110] tabular-nums">{item.quantity}</span>
                           <button onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            className="h-6 w-6 rounded-lg bg-[#F0EDE8] hover:bg-[#E5E5E3] text-[#878681] hover:text-[#2D2D2D] flex items-center justify-center transition-all duration-200 shrink-0"
+                            className="h-6 w-6 rounded-lg bg-[#F0EDE8] hover:bg-[#E5E5E3] text-[#4A4845] hover:text-[#111110] flex items-center justify-center transition-all duration-200 shrink-0"
                             aria-label="เพิ่มจำนวน">
                             <Plus className="h-3 w-3" />
                           </button>
-                          <span className="text-[11px] text-[#C0BEBA] font-mono tabular-nums">
+                          <span className="text-[11px] text-[#6B6865] font-mono tabular-nums">
                             × {formatCurrency(item.product.sellingPrice)}
                           </span>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0 pt-0.5">
-                        <p className="text-sm font-mono font-bold text-[#2D2D2D] w-20 text-right tabular-nums">
+                        <p className="text-sm font-mono font-bold text-[#111110] w-20 text-right tabular-nums">
                           {formatCurrency(Number(item.product.sellingPrice) * item.quantity)}
                         </p>
                         <button onClick={() => removeItem(item.id)}
-                          className="h-5 w-5 text-[#C0BEBA] hover:text-rose-400 flex items-center justify-center transition-all duration-200 shrink-0 opacity-0 group-hover:opacity-100"
+                          className="h-5 w-5 text-[#6B6865] hover:text-rose-400 flex items-center justify-center transition-all duration-200 shrink-0 opacity-0 group-hover:opacity-100"
                           aria-label="ลบรายการ">
                           <X className="h-3 w-3" />
                         </button>
@@ -670,11 +668,11 @@ export default function POSDashboard() {
               {items.length > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-[#878681]">ราคารวม</span>
-                    <span className="text-xs font-mono tabular-nums text-[#878681]">{formatCurrency(getSubtotal())}</span>
+                    <span className="text-xs text-[#4A4845]">ราคารวม</span>
+                    <span className="text-xs font-mono tabular-nums text-[#4A4845]">{formatCurrency(getSubtotal())}</span>
                   </div>
                   <div className="flex items-center justify-between gap-3">
-                    <label htmlFor="pos-discount" className="text-xs text-[#878681] shrink-0">ส่วนลด (฿)</label>
+                    <label htmlFor="pos-discount" className="text-xs text-[#4A4845] shrink-0">ส่วนลด (฿)</label>
                     <input
                       id="pos-discount"
                       type="text"
@@ -701,14 +699,14 @@ export default function POSDashboard() {
               {/* Total */}
               <div className="bg-[#F7F5F2] rounded-2xl px-4 py-3 flex items-center justify-between">
                 <div>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#878681]">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#4A4845]">
                     {storeDiscount > 0 ? 'ยอดชำระ' : 'ยอดรวม'}
                   </p>
-                  <p className="text-[11px] text-[#C0BEBA] mt-0.5 tabular-nums">
+                  <p className="text-[11px] text-[#6B6865] mt-0.5 tabular-nums">
                     {getItemCount()} ชิ้น · {items.length} รายการ
                   </p>
                 </div>
-                <p className="font-mono font-black text-[32px] text-[#2D2D2D] leading-none tabular-nums">
+                <p className="font-mono font-black text-[32px] text-[#111110] leading-none tabular-nums">
                   {formatCurrency(getTotal())}
                 </p>
               </div>
@@ -728,7 +726,7 @@ export default function POSDashboard() {
                 <button
                   onClick={() => { setCheckoutMode('checkout'); setShowCheckout(true); }}
                   disabled={items.length === 0 || !vehicle}
-                  className="h-10 bg-[#F0EDE8] hover:bg-[#E5E5E3] active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed text-[#4A4845] hover:text-[#2D2D2D] text-xs font-semibold rounded-xl transition-all duration-300 flex items-center justify-center gap-1.5"
+                  className="h-10 bg-[#F0EDE8] hover:bg-[#E5E5E3] active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed text-[#4A4845] hover:text-[#111110] text-xs font-semibold rounded-xl transition-all duration-300 flex items-center justify-center gap-1.5"
                 >
                   <FileText className="h-3.5 w-3.5" />
                   ใบเสนอราคา
@@ -754,8 +752,8 @@ export default function POSDashboard() {
         {!billView && (
           <div className="lg:hidden fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-[#E5E5E3] px-4 py-3 flex items-center gap-3 shadow-[0_-4px_24px_rgb(0,0,0,0.08)]">
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] text-[#878681] uppercase tracking-[0.1em] font-bold">{getItemCount()} รายการ</p>
-              <p className="text-xl font-mono font-black text-[#2D2D2D] leading-none tabular-nums mt-0.5">{formatCurrency(getTotal())}</p>
+              <p className="text-[10px] text-[#4A4845] uppercase tracking-[0.1em] font-bold">{getItemCount()} รายการ</p>
+              <p className="text-xl font-mono font-black text-[#111110] leading-none tabular-nums mt-0.5">{formatCurrency(getTotal())}</p>
             </div>
             <button
               onClick={() => setBillView(true)}

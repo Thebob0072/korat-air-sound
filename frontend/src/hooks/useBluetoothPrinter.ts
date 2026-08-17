@@ -1,6 +1,5 @@
 import { useRef, useState, useCallback } from 'react';
 import type { Order } from '@/types';
-import { formatCurrency } from '@/lib/utils';
 
 // ── ESC/POS constants ────────────────────────────────────────────────────────
 
@@ -55,98 +54,136 @@ function divider(char = '-', width = LINE_WIDTH): string {
 
 // ── ESC/POS builder ──────────────────────────────────────────────────────────
 
+function thb2(n: number): string {
+  return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function buildReceiptBuffer(order: Order): Uint8Array {
   const chunks: number[] = [];
 
-  const push = (...bytes: number[]) => chunks.push(...bytes);
-  const text = (str: string) => chunks.push(...encodeText(str));
-  const line = (str = '') => { text(str); push(LF); };
+  const push  = (...bytes: number[]) => chunks.push(...bytes);
+  const text  = (str: string) => chunks.push(...encodeText(str));
+  const line  = (str = '') => { text(str); push(LF); };
+  const cline = (str: string) => { push(ESC, 0x61, 0x01); line(str); push(ESC, 0x61, 0x00); };
 
-  // Init + TIS-620 codepage
-  push(ESC, 0x40);           // init
-  push(ESC, 0x74, 0x13);    // codepage TIS-620
-
-  // ── Header ──
-  push(ESC, 0x61, 0x01);    // center
-  push(ESC, 0x45, 0x01);    // bold on
-  push(ESC, 0x21, 0x10);    // double height
-  line('Korat Air & Sound');
-  push(ESC, 0x21, 0x00);    // normal size
-  push(ESC, 0x45, 0x00);    // bold off
-  line('ประดับยนต์ ติดตั้งฟิล์ม ซ่อมแอร์');
-  line('064-496-5333');
-  push(ESC, 0x61, 0x00);    // left
-
-  // ── Doc type & number ──
-  push(ESC, 0x61, 0x01);    // center
-  line(divider('='));
-  push(ESC, 0x45, 0x01);
   const isReceipt = order.status === 'Paid';
-  line(isReceipt ? 'ใบเสร็จรับเงิน' : 'ใบเสนอราคา');
-  push(ESC, 0x45, 0x00);
-  push(ESC, 0x61, 0x00);
-  line(divider('='));
 
-  // ── Order info ──
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-  line(cols('เลขที่:', order.orderNumber));
-  line(cols('วันที่:', `${dateStr} ${timeStr}`));
+  // Totals
+  const items    = order.orderItems ?? [];
+  const subtotal = items.reduce((s, i) => s + Number(i.subtotalPrice), 0);
+  const total    = Number(order.totalAmount);
+  const discount = subtotal - total;
+  const hasDiscount = discount > 0.005;
 
-  // ── Vehicle & customer ──
-  line(divider());
-  if (order.vehicle?.licensePlate) {
-    push(ESC, 0x45, 0x01);
-    line(cols('ทะเบียน:', order.vehicle.licensePlate));
-    push(ESC, 0x45, 0x00);
-  }
-  if (order.vehicle?.brand || order.vehicle?.model) {
-    line(cols('รถ:', `${order.vehicle.brand ?? ''} ${order.vehicle.model ?? ''}`.trim()));
-  }
-  if (order.vehicle?.customer?.name) {
-    line(cols('ลูกค้า:', order.vehicle.customer.name));
-  }
-  if (order.vehicle?.customer?.phone) {
-    line(cols('โทร:', order.vehicle.customer.phone));
-  }
+  // Date from order, not now
+  const orderDate = new Date(order.createdAt);
+  const dateStr = orderDate.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  const timeStr = orderDate.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
 
-  // ── Items ──
-  line(divider());
-  (order.orderItems ?? []).forEach((item, idx) => {
-    const name = item.customLabel ?? item.product?.name ?? '';
-    const qty = Number(item.quantity);
-    const price = Number(item.unitPrice);
-    const sub = qty * price;
-    const nameLine = [...name].length > LINE_WIDTH - 2 ? [...name].slice(0, LINE_WIDTH - 3).join('') + '…' : name;
-    text(`${idx + 1}. `);
-    line(nameLine);
-    line(cols(`  x${qty} @ ${formatCurrency(price)}`, formatCurrency(sub)));
-  });
+  // ── Init ──
+  push(ESC, 0x40);        // init printer
+  push(ESC, 0x74, 0x13); // TIS-620 codepage
 
-  // ── Total ──
-  line(divider('='));
-  push(ESC, 0x45, 0x01);
-  push(ESC, 0x21, 0x10); // double height
-  line(cols('ยอดรวม', formatCurrency(Number(order.totalAmount))));
-  push(ESC, 0x21, 0x00);
-  push(ESC, 0x45, 0x00);
+  // ── HEADER ──
+  push(ESC, 0x61, 0x01);  // center
+  push(ESC, 0x45, 0x01);  // bold
+  push(ESC, 0x21, 0x10);  // double height
+  line('Korat Air & Sound');
+  push(ESC, 0x21, 0x00);  // normal size
+  push(ESC, 0x45, 0x00);  // bold off
+  line('ประดับยนต์ · ติดตั้งฟิล์ม · ซ่อมแอร์');
+  line('064-496-5333');
+  push(ESC, 0x61, 0x00);  // left
 
-  // ── Footer ──
+  // ── DOC TYPE ──
   line(divider('='));
   push(ESC, 0x61, 0x01); // center
+  push(ESC, 0x45, 0x01); // bold
+  line(isReceipt ? '--- ใบเสร็จรับเงิน ---' : '--- ใบเสนอราคา ---');
+  push(ESC, 0x45, 0x00);
+  push(ESC, 0x61, 0x00);
+  line(divider('='));
+
+  // ── ORDER REF ──
+  line(cols('เลขที่', order.orderNumber));
+  line(cols('วันที่', `${dateStr} ${timeStr} น.`));
+  line(divider('-'));
+
+  // ── VEHICLE / CUSTOMER ──
+  const v = order.vehicle;
+  if (v?.licensePlate) {
+    push(ESC, 0x45, 0x01);
+    push(ESC, 0x21, 0x10); // double height plate
+    cline(v.licensePlate);
+    push(ESC, 0x21, 0x00);
+    push(ESC, 0x45, 0x00);
+  }
+  if (v?.brand || v?.model) {
+    line(`  ${[v?.brand, v?.model].filter(Boolean).join(' ')}`);
+  }
+  if (v?.customer?.name)  line(cols('ลูกค้า', v.customer.name));
+  if (v?.customer?.phone) line(cols('โทร', v.customer.phone));
+  line(divider('-'));
+
+  // ── ITEMS ──
+  line('รายการสินค้า / บริการ');
+  line(divider('-'));
+  items.forEach((item, idx) => {
+    const name  = item.customLabel ?? item.product?.name ?? '';
+    const qty   = Number(item.quantity);
+    const price = Number(item.unitPrice);
+    const sub   = Number(item.subtotalPrice);
+    // Name line — wrap at LINE_WIDTH
+    const prefix = `${idx + 1}. `;
+    const maxName = LINE_WIDTH - prefix.length;
+    const nameTrimmed = [...name].length > maxName
+      ? [...name].slice(0, maxName - 1).join('') + '…'
+      : name;
+    line(prefix + nameTrimmed);
+    // Qty × price → subtotal
+    const qtyStr  = qty % 1 === 0 ? `${qty}` : qty.toFixed(2);
+    const priceStr = `฿${thb2(price)}`;
+    const subStr   = `฿${thb2(sub)}`;
+    line(cols(`  ${qtyStr} x ${priceStr}`, subStr));
+    if (item.technicianName) {
+      line(`  ช่าง: ${item.technicianName}`);
+    }
+  });
+  line(divider('='));
+
+  // ── TOTALS ──
+  if (hasDiscount) {
+    line(cols('ราคารวม', `฿${thb2(subtotal)}`));
+    line(cols('ส่วนลด', `-฿${thb2(discount)}`));
+    line(divider('-'));
+  }
+  push(ESC, 0x45, 0x01);  // bold
+  push(ESC, 0x21, 0x10);  // double height
+  line(cols('ยอดชำระ', `฿${thb2(total)}`));
+  push(ESC, 0x21, 0x00);
+  push(ESC, 0x45, 0x00);
+  line(divider('='));
+
+  // ── FOOTER ──
+  push(ESC, 0x61, 0x01); // center
   if (isReceipt) {
-    line('ขอบคุณที่ใช้บริการ');
-    line('ชำระเงินเรียบร้อยแล้ว');
+    push(ESC, 0x45, 0x01);
+    line('*** ขอบคุณที่ใช้บริการ ***');
+    push(ESC, 0x45, 0x00);
+    line('กรุณาเก็บใบเสร็จนี้ไว้เป็นหลักฐาน');
+    line('นำใบเสร็จมาแสดงเมื่อรับประกัน');
   } else {
+    push(ESC, 0x45, 0x01);
     line('ใบเสนอราคามีอายุ 30 วัน');
+    push(ESC, 0x45, 0x00);
     line('กรุณาตรวจสอบรายการก่อนยืนยัน');
+    line('โทร 064-496-5333');
   }
   push(ESC, 0x61, 0x00);
 
-  // Feed + cut
-  push(ESC, 0x64, 0x05);    // feed 5 lines
-  push(GS, 0x56, 0x42, 0x00); // full cut
+  // ── CUT ──
+  push(ESC, 0x64, 0x06);       // feed 6 lines
+  push(GS, 0x56, 0x42, 0x00);  // full cut
 
   return new Uint8Array(chunks);
 }

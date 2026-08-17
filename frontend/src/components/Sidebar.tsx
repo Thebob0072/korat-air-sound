@@ -53,10 +53,10 @@ function LiveClock() {
   }, []);
   return (
     <div className="px-3 py-3">
-      <p className="font-mono text-[13px] font-semibold text-[#2D2D2D] tabular-nums leading-none">
+      <p className="font-mono text-[13px] font-semibold text-[#111110] tabular-nums leading-none">
         {now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
       </p>
-      <p className="text-[10px] text-[#9B9894] mt-1">
+      <p className="text-[10px] text-[#6B6865] mt-1">
         {now.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short' })}
       </p>
     </div>
@@ -99,10 +99,10 @@ function BusinessSwitcher({ onClose }: { onClose?: () => void }) {
         ) : (
           <div className="w-[22px] h-[22px] rounded-[6px] bg-[#E5E3DF] shrink-0" />
         )}
-        <span className="flex-1 text-left text-[13px] font-medium text-[#2D2D2D] truncate leading-none">
+        <span className="flex-1 text-left text-[13px] font-medium text-[#111110] truncate leading-none">
           {selected?.name ?? 'เลือกธุรกิจ'}
         </span>
-        <ChevronsUpDown className="h-3.5 w-3.5 text-[#C0BEBA] shrink-0" />
+        <ChevronsUpDown className="h-3.5 w-3.5 text-[#8A8784] shrink-0" />
       </button>
 
       {open && (
@@ -114,7 +114,7 @@ function BusinessSwitcher({ onClose }: { onClose?: () => void }) {
               className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-[#F7F5F2] transition-colors duration-75 text-left"
             >
               <BusinessAvatar name={biz.name} size={20} />
-              <span className="flex-1 text-[13px] font-medium text-[#2D2D2D] truncate">{biz.name}</span>
+              <span className="flex-1 text-[13px] font-medium text-[#111110] truncate">{biz.name}</span>
               {biz.id === selected?.id && <Check className="h-3.5 w-3.5 text-[#3B3A36] shrink-0" />}
             </button>
           ))}
@@ -124,9 +124,9 @@ function BusinessSwitcher({ onClose }: { onClose?: () => void }) {
             className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-[#F7F5F2] transition-colors duration-75 text-left"
           >
             <div className="w-5 h-5 rounded-[5px] bg-[#F0EDE8] flex items-center justify-center shrink-0">
-              <Plus className="h-3 w-3 text-[#878681]" />
+              <Plus className="h-3 w-3 text-[#4A4845]" />
             </div>
-            <span className="text-[13px] text-[#878681]">จัดการธุรกิจ</span>
+            <span className="text-[13px] text-[#4A4845]">จัดการธุรกิจ</span>
           </button>
         </div>
       )}
@@ -154,12 +154,12 @@ function NavItem({
       className={cn(
         'flex items-center gap-2.5 mx-2 px-2 rounded-[6px] h-8 text-[13px] font-medium transition-colors duration-100',
         active
-          ? 'bg-[#ECEAE6] text-[#1A1917]'
-          : 'text-[#878681] hover:bg-[#F0EDE8] hover:text-[#2D2D2D]',
+          ? 'bg-[#2D2C28] text-white'
+          : 'text-[#1A1917] hover:bg-[#ECEAE6] hover:text-[#111110]',
       )}
     >
       <Icon
-        className={cn('h-4 w-4 shrink-0', active ? 'text-[#3B3A36]' : 'text-[#C0BEBA]')}
+        className={cn('h-4 w-4 shrink-0', active ? 'text-white' : 'text-[#4A4845]')}
         strokeWidth={active ? 2 : 1.75}
       />
       {label}
@@ -181,9 +181,9 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
         <div className="px-2 py-1.5">
           <button
             onClick={() => { onClose?.(); navigate('/select'); }}
-            className="w-full flex items-center gap-2.5 px-2 rounded-[6px] h-8 text-[13px] font-medium text-[#878681] hover:bg-[#F0EDE8] hover:text-[#2D2D2D] transition-colors duration-100"
+            className="w-full flex items-center gap-2.5 px-2 rounded-[6px] h-8 text-[13px] font-medium text-[#4A4845] hover:bg-[#F0EDE8] hover:text-[#111110] transition-colors duration-100"
           >
-            <Settings className="h-4 w-4 text-[#C0BEBA] shrink-0" strokeWidth={1.75} />
+            <Settings className="h-4 w-4 text-[#8A8784] shrink-0" strokeWidth={1.75} />
             ตั้งค่าธุรกิจ
           </button>
         </div>
@@ -211,10 +211,10 @@ export default function Sidebar() {
           className="h-8 w-8 flex items-center justify-center rounded-[6px] hover:bg-[#F0EDE8] transition-colors"
           aria-label="เปิดเมนู"
         >
-          <Menu className="h-5 w-5 text-[#2D2D2D]" />
+          <Menu className="h-5 w-5 text-[#111110]" />
         </button>
         {selected && <BusinessAvatar name={selected.name} size={22} />}
-        <span className="text-[13px] font-medium text-[#2D2D2D] truncate flex-1">
+        <span className="text-[13px] font-medium text-[#111110] truncate flex-1">
           {selected?.name ?? ''}
         </span>
       </header>
@@ -236,12 +236,12 @@ export default function Sidebar() {
         )}
       >
         <div className="flex items-center justify-between px-3 h-12 border-b border-[#F0EDE8] shrink-0">
-          <span className="text-[13px] font-semibold text-[#2D2D2D]">เมนู</span>
+          <span className="text-[13px] font-semibold text-[#111110]">เมนู</span>
           <button
             onClick={() => setDrawerOpen(false)}
             className="h-8 w-8 flex items-center justify-center rounded-[6px] hover:bg-[#F0EDE8] transition-colors"
           >
-            <X className="h-4 w-4 text-[#878681]" />
+            <X className="h-4 w-4 text-[#4A4845]" />
           </button>
         </div>
         <div className="h-[calc(100%-3rem)]">
