@@ -19,7 +19,7 @@ function BusinessGuard({ children }: { children: React.ReactNode }) {
   const { selected } = useBusiness();
   const location = useLocation();
   if (!selected) {
-    return <Navigate to="/select" state={{ from: location.pathname }} replace />;
+    return <Navigate to="/landing" state={{ from: location.pathname }} replace />;
   }
   return <>{children}</>;
 }
