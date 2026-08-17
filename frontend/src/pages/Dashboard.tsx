@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Loader2, TrendingUp, CreditCard, Wrench, Clock,
-  AlertCircle, CheckCircle2, ArrowRight, Car, Users,
+  AlertCircle, CheckCircle2, ArrowRight, Car, Users, RefreshCw,
 } from 'lucide-react';
 import { getDashboard } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -117,11 +117,13 @@ function Section({
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data, isPending, isError } = useQuery({
     queryKey: ['dashboard'],
     queryFn: getDashboard,
-    refetchInterval: 60_000, // auto-refresh every minute
+    refetchInterval: 60_000,
+    retry: 1,
   });
 
   if (isPending) {
@@ -133,7 +135,34 @@ export default function Dashboard() {
   }
 
   if (isError || !data) {
-    return <div className="text-center py-16 text-red-500 text-sm">โหลด dashboard ไม่สำเร็จ</div>;
+    return (
+      <div className="space-y-6">
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-[#1A1917] tracking-tight">ภาพรวม</h1>
+            <p className="text-sm text-[#878681] mt-0.5">
+              {new Date().toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center">
+            <AlertCircle className="h-7 w-7 text-red-400" strokeWidth={1.5} />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-semibold text-[#2D2D2D]">เชื่อมต่อ backend ไม่ได้</p>
+            <p className="text-xs text-[#9B9894] mt-1">ตรวจสอบว่า backend กำลังทำงานอยู่</p>
+          </div>
+          <button
+            onClick={() => queryClient.refetchQueries({ queryKey: ['dashboard'] })}
+            className="flex items-center gap-2 px-4 py-2 bg-[#3B3A36] hover:opacity-90 text-white text-sm font-medium rounded-xl transition-all"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            ลองใหม่
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const { revenue, active, credit, recentPaid, newCustomersMonth } = data;

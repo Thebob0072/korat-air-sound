@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { Loader2, FileText } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Loader2, FileText, AlertCircle, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Pagination, PageSizeSelector } from '@/components/ui/pagination';
@@ -22,6 +22,17 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   Cancelled: 'ยกเลิก',
 };
 
+const STATUS_DOT_ROW: Record<OrderStatus, string> = {
+  Draft:           'bg-[#C0BEBA]',
+  Quoted:          'bg-yellow-400',
+  InProgress:      'bg-sky-400',
+  WaitingForParts: 'bg-amber-400',
+  Ready:           'bg-emerald-400',
+  InvoicePending:  'bg-blue-400',
+  Paid:            'bg-emerald-600',
+  Cancelled:       'bg-red-400',
+};
+
 type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning';
 
 const STATUS_BADGE: Record<OrderStatus, BadgeVariant> = {
@@ -35,23 +46,28 @@ const STATUS_BADGE: Record<OrderStatus, BadgeVariant> = {
   Cancelled: 'destructive',
 };
 
-const FILTERS: { value: string; label: string }[] = [
-  { value: '', label: 'ทั้งหมด' },
-  { value: 'Draft', label: 'แบบร่าง' },
-  { value: 'Quoted', label: 'ใบเสนอราคา' },
-  { value: 'InvoicePending', label: 'วางบิล' },
-  { value: 'Paid', label: 'ชำระแล้ว' },
-  { value: 'Cancelled', label: 'ยกเลิก' },
+const FILTERS: { value: string; label: string; dot?: string }[] = [
+  { value: '',                label: 'ทั้งหมด' },
+  { value: 'InProgress',     label: 'กำลังซ่อม',   dot: 'bg-sky-400' },
+  { value: 'WaitingForParts',label: 'รออะไหล่',     dot: 'bg-amber-400' },
+  { value: 'Ready',          label: 'รอส่งมอบ',     dot: 'bg-emerald-400' },
+  { value: 'InvoicePending', label: 'วางบิล',       dot: 'bg-blue-400' },
+  { value: 'Paid',           label: 'ชำระแล้ว',     dot: 'bg-emerald-600' },
+  { value: 'Quoted',         label: 'ใบเสนอราคา',   dot: 'bg-yellow-400' },
+  { value: 'Draft',          label: 'แบบร่าง' },
+  { value: 'Cancelled',      label: 'ยกเลิก',       dot: 'bg-red-400' },
 ];
 
 export default function OrdersPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState('');
   const [dateFilter, setDateFilter] = useState<Date | undefined>();
 
   const { data: orders = [], isPending, isError } = useQuery({
     queryKey: ['orders', filter],
     queryFn: () => getOrders(filter ? { status: filter } : {}),
+    retry: 1,
   });
 
   const filteredOrders = useMemo(() => {
@@ -77,12 +93,15 @@ export default function OrdersPage() {
             <button
               key={f.value}
               onClick={() => setFilter(f.value)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 shrink-0 ${
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 shrink-0 ${
                 filter === f.value
                   ? 'bg-[#3B3A36] text-white shadow-sm'
                   : 'bg-white text-[#878681] hover:text-[#2D2D2D] hover:bg-[#F0EDE8]'
               }`}
             >
+              {f.dot && (
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${filter === f.value ? 'bg-white/70' : f.dot}`} />
+              )}
               {f.label}
             </button>
           ))}
@@ -95,7 +114,7 @@ export default function OrdersPage() {
               {dateFilter && <span className="ml-1.5 text-xs bg-[#F0EDE8] px-2 py-0.5 rounded-full">กรองตามวันที่</span>}
             </p>
           )}
-          <div className="w-36 sm:w-40 shrink-0">
+          <div className="flex-1 sm:flex-none sm:w-40 min-w-[120px]">
             <DatePicker
               value={dateFilter}
               onChange={setDateFilter}
@@ -107,7 +126,9 @@ export default function OrdersPage() {
               }
             />
           </div>
-          <PageSizeSelector pageSize={pageSize} onPageSizeChange={setPageSize} />
+          <div className="hidden lg:block">
+            <PageSizeSelector pageSize={pageSize} onPageSizeChange={setPageSize} />
+          </div>
         </div>
       </div>
 
@@ -116,82 +137,164 @@ export default function OrdersPage() {
           <Loader2 className="h-6 w-6 animate-spin text-[#878681]" />
         </div>
       ) : isError ? (
-        <div className="text-center py-16 text-red-500 text-sm">โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่</div>
-      ) : (
-        <div className="bg-white rounded-[20px] border border-[#E5E5E3] overflow-hidden shadow-[0_2px_12px_rgb(0,0,0,0.04)]">
-          <div className="overflow-x-auto">
-          <table className="w-full min-w-[680px] text-sm">
-            <thead className="bg-[#FAF9F7]">
-              <tr className="border-b border-[#E5E5E3]">
-                <th className="text-left px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">เลขที่ออเดอร์</th>
-                <th className="text-left px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">ทะเบียนรถ</th>
-                <th className="text-left px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">ลูกค้า</th>
-                <th className="text-left px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">วันที่เปิดงาน</th>
-                <th className="text-right px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">ยอดรวม</th>
-                <th className="text-center px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">สถานะ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paged.map((order) => (
-                <tr
-                  key={order.id}
-                  className="border-b border-[#F0EDE8] last:border-0 hover:bg-[#F7F5F2] cursor-pointer transition-colors"
-                  onClick={() => navigate(`/orders/${order.id}`)}
-                >
-                  <td className="px-5 py-4 font-mono font-semibold text-[#3B3A36]">
-                    {order.orderNumber}
-                  </td>
-                  <td className="px-5 py-4 font-mono font-bold tracking-wide text-[#2D2D2D]">
-                    {order.vehicle?.licensePlate}
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="font-medium text-[#2D2D2D]">
-                      {order.vehicle?.customer?.name ?? order.vehicle?.customer?.phone ?? <span className="text-[#C0BEBA] text-xs">—</span>}
-                    </div>
-                    {order.vehicle?.customer?.name && order.vehicle?.customer?.phone && (
-                      <div className="text-xs text-[#878681] mt-0.5 font-mono">{order.vehicle.customer.phone}</div>
-                    )}
-                  </td>
-                  <td className="px-5 py-4 text-[#878681]">{formatDate(order.createdAt)}</td>
-                  <td className="px-5 py-4 text-right font-semibold font-mono text-[#2D2D2D]">
-                    {formatCurrency(order.totalAmount)}
-                  </td>
-                  <td className="px-5 py-4 text-center">
-                    <Badge variant={STATUS_BADGE[order.status]}>
-                      {STATUS_LABELS[order.status]}
-                    </Badge>
-                    {order.status === 'InvoicePending' && order.dueDate && (
-                      <div className={`text-xs mt-1 font-medium ${new Date(order.dueDate) < new Date() ? 'text-red-500' : 'text-blue-500'}`}>
-                        ครบ {new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short' }).format(new Date(order.dueDate))}
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {paged.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="py-16">
-                    <div className="flex flex-col items-center gap-3 text-[#878681]">
-                      <FileText className="h-10 w-10 text-[#E5E5E3]" strokeWidth={1} />
-                      <span className="text-sm">ไม่มีออเดอร์ในหมวดนี้</span>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center">
+            <AlertCircle className="h-6 w-6 text-red-400" strokeWidth={1.5} />
           </div>
-          <div className="px-4 pb-4">
-            <Pagination
-              total={total}
-              page={page}
-              pageSize={pageSize}
-              totalPages={totalPages}
-              onPageChange={setPage}
-              onPageSizeChange={setPageSize}
-            />
+          <div className="text-center">
+            <p className="text-sm font-semibold text-[#2D2D2D]">เชื่อมต่อ backend ไม่ได้</p>
+            <p className="text-xs text-[#9B9894] mt-1">ตรวจสอบว่า backend กำลังทำงานอยู่</p>
           </div>
+          <button
+            onClick={() => queryClient.refetchQueries({ queryKey: ['orders'] })}
+            className="flex items-center gap-2 px-4 py-2 bg-[#3B3A36] hover:opacity-90 text-white text-sm font-medium rounded-xl transition-all"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            ลองใหม่
+          </button>
         </div>
+      ) : (
+        <>
+          {/* ── Mobile/tablet cards (hidden on lg+) ──────────────────────── */}
+          <div className="lg:hidden bg-white rounded-[20px] border border-[#E5E5E3] overflow-hidden shadow-[0_2px_12px_rgb(0,0,0,0.04)]">
+            {paged.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 py-16 text-[#878681]">
+                <FileText className="h-10 w-10 text-[#E5E5E3]" strokeWidth={1} />
+                <span className="text-sm">ไม่มีออเดอร์ในหมวดนี้</span>
+              </div>
+            ) : (
+              <div className="divide-y divide-[#F0EDE8]">
+                {paged.map((order) => (
+                  <button
+                    key={order.id}
+                    onClick={() => navigate(`/orders/${order.id}`)}
+                    className="w-full text-left px-4 py-3.5 active:bg-[#F7F5F2] transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`w-2 h-2 rounded-full shrink-0 mt-[3px] ${STATUS_DOT_ROW[order.status]}`} />
+                        <span className="font-mono font-black text-[15px] tracking-wide text-[#2D2D2D] leading-tight">
+                          {order.vehicle?.licensePlate ?? '—'}
+                        </span>
+                      </div>
+                      <span className="font-mono font-bold text-[#2D2D2D] shrink-0 tabular-nums">
+                        {formatCurrency(order.totalAmount)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mt-1.5 pl-4">
+                      <div className="flex items-center gap-1.5 min-w-0 mr-2">
+                        <span className="text-xs text-[#878681] truncate">
+                          {order.vehicle?.customer?.name ?? order.vehicle?.customer?.phone ?? '—'}
+                        </span>
+                        <span className="text-[#D8D5D0] text-xs shrink-0">·</span>
+                        <span className="text-xs text-[#9B9894] shrink-0">
+                          {formatDate(order.createdAt).split(' ')[0]}
+                        </span>
+                      </div>
+                      <Badge variant={STATUS_BADGE[order.status]} className="shrink-0">
+                        {STATUS_LABELS[order.status]}
+                      </Badge>
+                    </div>
+                    {order.status === 'InvoicePending' && order.dueDate && (
+                      <p className={`text-[10px] font-semibold mt-1 pl-4 ${new Date(order.dueDate) < new Date() ? 'text-red-500' : 'text-blue-500'}`}>
+                        ครบ {new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short' }).format(new Date(order.dueDate))}
+                      </p>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="px-4 pb-4">
+              <Pagination
+                total={total}
+                page={page}
+                pageSize={pageSize}
+                totalPages={totalPages}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+              />
+            </div>
+          </div>
+
+          {/* ── Desktop table (hidden below lg) ──────────────────────────── */}
+          <div className="hidden lg:block bg-white rounded-[20px] border border-[#E5E5E3] overflow-hidden shadow-[0_2px_12px_rgb(0,0,0,0.04)]">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[680px] text-sm">
+                <thead className="bg-[#FAF9F7]">
+                  <tr className="border-b border-[#E5E5E3]">
+                    <th className="text-left px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">เลขที่ออเดอร์</th>
+                    <th className="text-left px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">ทะเบียนรถ</th>
+                    <th className="text-left px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">ลูกค้า</th>
+                    <th className="text-left px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">วันที่เปิดงาน</th>
+                    <th className="text-right px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">ยอดรวม</th>
+                    <th className="text-center px-5 py-3.5 text-xs font-semibold text-[#9B9894] tracking-wide">สถานะ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paged.map((order) => (
+                    <tr
+                      key={order.id}
+                      className="border-b border-[#F0EDE8] last:border-0 hover:bg-[#F7F5F2] cursor-pointer transition-colors"
+                      onClick={() => navigate(`/orders/${order.id}`)}
+                    >
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT_ROW[order.status]}`} />
+                          <span className="font-mono font-semibold text-[#3B3A36]">{order.orderNumber}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4 font-mono font-bold tracking-wide text-[#2D2D2D]">
+                        {order.vehicle?.licensePlate}
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="font-medium text-[#2D2D2D]">
+                          {order.vehicle?.customer?.name ?? order.vehicle?.customer?.phone ?? <span className="text-[#C0BEBA] text-xs">—</span>}
+                        </div>
+                        {order.vehicle?.customer?.name && order.vehicle?.customer?.phone && (
+                          <div className="text-xs text-[#878681] mt-0.5 font-mono">{order.vehicle.customer.phone}</div>
+                        )}
+                      </td>
+                      <td className="px-5 py-4 text-[#878681]">{formatDate(order.createdAt)}</td>
+                      <td className="px-5 py-4 text-right font-semibold font-mono text-[#2D2D2D]">
+                        {formatCurrency(order.totalAmount)}
+                      </td>
+                      <td className="px-5 py-4 text-center">
+                        <Badge variant={STATUS_BADGE[order.status]}>
+                          {STATUS_LABELS[order.status]}
+                        </Badge>
+                        {order.status === 'InvoicePending' && order.dueDate && (
+                          <div className={`text-xs mt-1 font-medium ${new Date(order.dueDate) < new Date() ? 'text-red-500' : 'text-blue-500'}`}>
+                            ครบ {new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short' }).format(new Date(order.dueDate))}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {paged.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="py-16">
+                        <div className="flex flex-col items-center gap-3 text-[#878681]">
+                          <FileText className="h-10 w-10 text-[#E5E5E3]" strokeWidth={1} />
+                          <span className="text-sm">ไม่มีออเดอร์ในหมวดนี้</span>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="px-4 pb-4">
+              <Pagination
+                total={total}
+                page={page}
+                pageSize={pageSize}
+                totalPages={totalPages}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+              />
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

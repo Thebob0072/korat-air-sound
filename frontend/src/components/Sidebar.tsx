@@ -5,6 +5,8 @@ import {
   Package, BarChart2, ChevronsUpDown, Check, Plus, Settings,
   Menu, X,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { getDashboard } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useBusiness } from '@/context/BusinessContext';
 
@@ -138,11 +140,13 @@ function NavItem({
   href,
   label,
   icon: Icon,
+  badge,
   onClick,
 }: {
   href: string;
   label: string;
   icon: React.ElementType;
+  badge?: number;
   onClick?: () => void;
 }) {
   const { pathname } = useLocation();
@@ -162,19 +166,41 @@ function NavItem({
         className={cn('h-4 w-4 shrink-0', active ? 'text-white' : 'text-[#4A4845]')}
         strokeWidth={active ? 2 : 1.75}
       />
-      {label}
+      <span className="flex-1">{label}</span>
+      {badge != null && badge > 0 && (
+        <span className={cn(
+          'text-[10px] font-bold min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1 tabular-nums',
+          active ? 'bg-white/20 text-white' : 'bg-amber-400 text-white',
+        )}>
+          {badge > 99 ? '99+' : badge}
+        </span>
+      )}
     </Link>
   );
 }
 
 function SidebarContent({ onClose }: { onClose?: () => void }) {
   const navigate = useNavigate();
+  const { data: dash } = useQuery({
+    queryKey: ['dashboard'],
+    queryFn: getDashboard,
+    staleTime: 60_000,
+    retry: false,
+    refetchInterval: 120_000,
+  });
+  const activeCount = dash?.active?.count ?? 0;
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <BusinessSwitcher onClose={onClose} />
       <nav className="flex-1 flex flex-col gap-0.5 pt-1 overflow-y-auto">
         {NAV_ITEMS.map((item) => (
-          <NavItem key={item.href} {...item} onClick={onClose} />
+          <NavItem
+            key={item.href}
+            {...item}
+            badge={item.href === '/orders' ? activeCount : undefined}
+            onClick={onClose}
+          />
         ))}
       </nav>
       <div className="border-t border-[#F0EDE8] mt-2">
@@ -199,13 +225,13 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Desktop sidebar */}
-      <aside className="no-print hidden lg:flex flex-col w-60 sticky top-0 h-screen shrink-0 bg-[#FAFAF8]">
+      {/* Sidebar — shows on md (768px) and up */}
+      <aside className="no-print hidden md:flex flex-col w-60 sticky top-0 h-screen shrink-0 bg-[#FAFAF8]">
         <SidebarContent />
       </aside>
 
-      {/* Mobile top bar */}
-      <header className="no-print lg:hidden fixed top-0 left-0 right-0 z-30 h-12 bg-[#FAFAF8] flex items-center px-3 gap-2.5">
+      {/* Mobile top bar — phones only (below md) */}
+      <header className="no-print md:hidden fixed top-0 left-0 right-0 z-30 h-12 bg-[#FAFAF8] flex items-center px-3 gap-2.5">
         <button
           onClick={() => setDrawerOpen(true)}
           className="h-8 w-8 flex items-center justify-center rounded-[6px] hover:bg-[#F0EDE8] transition-colors"
@@ -222,7 +248,7 @@ export default function Sidebar() {
       {/* Mobile overlay */}
       <div
         className={cn(
-          'lg:hidden fixed inset-0 z-40 bg-black/25 transition-opacity duration-200',
+          'md:hidden fixed inset-0 z-40 bg-black/25 transition-opacity duration-200',
           drawerOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
         )}
         onClick={() => setDrawerOpen(false)}
@@ -231,7 +257,7 @@ export default function Sidebar() {
       {/* Mobile drawer */}
       <div
         className={cn(
-          'lg:hidden fixed top-0 left-0 bottom-0 z-50 w-64 bg-[#FAFAF8] shadow-xl transition-transform duration-200 ease-out',
+          'md:hidden fixed top-0 left-0 bottom-0 z-50 w-64 bg-[#FAFAF8] shadow-xl transition-transform duration-200 ease-out',
           drawerOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >

@@ -42,16 +42,23 @@ import { usePOSCartStore } from '@/store/POSCartStore';
 import { formatCurrency, cn } from '@/lib/utils';
 import type { Vehicle, Product } from '@/types';
 import { ProductCategory } from '@/types';
+import { useBusiness } from '@/context/BusinessContext';
 
-// ── Category config ───────────────────────────────────────────────────────────
+// ── Static category meta (icon / colors per ProductCategory value) ────────────
 
-const CATS = [
-  { value: ProductCategory.AirCon,     label: 'ระบบแอร์',      Icon: Wind,     iconBg: 'bg-sky-200',    iconFg: 'text-sky-700',    chipBg: 'bg-sky-50 border-sky-200 hover:bg-sky-100 hover:border-sky-300',    labelFg: 'text-sky-800',    airconSpecial: true },
-  { value: ProductCategory.Tint,        label: 'ฟิล์มกรองแสง', Icon: Eye,      iconBg: 'bg-violet-200', iconFg: 'text-violet-700', chipBg: 'bg-violet-50 border-violet-200 hover:bg-violet-100 hover:border-violet-300', labelFg: 'text-violet-800', tintSpecial: true },
-  { value: ProductCategory.Glass,       label: 'กระจกรถยนต์',  Icon: GlassIcon,iconBg: 'bg-teal-200',   iconFg: 'text-teal-700',   chipBg: 'bg-teal-50 border-teal-200 hover:bg-teal-100 hover:border-teal-300',   labelFg: 'text-teal-800',   glassSpecial: true },
-  { value: ProductCategory.Sound,       label: 'เครื่องเสียง', Icon: Volume2,  iconBg: 'bg-orange-200', iconFg: 'text-orange-700', chipBg: 'bg-orange-50 border-orange-200 hover:bg-orange-100 hover:border-orange-300', labelFg: 'text-orange-800', soundSpecial: true },
-  { value: ProductCategory.ServiceFee,  label: 'อื่นๆ / ค่าแรง',Icon: Wrench,  iconBg: 'bg-stone-200',  iconFg: 'text-stone-600',  chipBg: 'bg-stone-50 border-stone-200 hover:bg-stone-100 hover:border-stone-300',  labelFg: 'text-stone-700',  otherSpecial: true },
-];
+const CAT_META: Record<string, {
+  Icon: React.ElementType;
+  iconBg: string; iconFg: string; chipBg: string; labelFg: string;
+  airconSpecial?: boolean; tintSpecial?: boolean; glassSpecial?: boolean;
+  soundSpecial?: boolean; otherSpecial?: boolean;
+}> = {
+  AirCon:     { Icon: Wind,      iconBg: 'bg-sky-200',    iconFg: 'text-sky-700',    chipBg: 'bg-sky-50 border-sky-200 hover:bg-sky-100 hover:border-sky-300',       labelFg: 'text-sky-800',    airconSpecial: true },
+  Tint:       { Icon: Eye,       iconBg: 'bg-violet-200', iconFg: 'text-violet-700', chipBg: 'bg-violet-50 border-violet-200 hover:bg-violet-100 hover:border-violet-300', labelFg: 'text-violet-800', tintSpecial: true },
+  Glass:      { Icon: GlassIcon, iconBg: 'bg-teal-200',   iconFg: 'text-teal-700',   chipBg: 'bg-teal-50 border-teal-200 hover:bg-teal-100 hover:border-teal-300',     labelFg: 'text-teal-800',   glassSpecial: true },
+  Sound:      { Icon: Volume2,   iconBg: 'bg-orange-200', iconFg: 'text-orange-700', chipBg: 'bg-orange-50 border-orange-200 hover:bg-orange-100 hover:border-orange-300', labelFg: 'text-orange-800', soundSpecial: true },
+  ServiceFee: { Icon: Wrench,    iconBg: 'bg-stone-200',  iconFg: 'text-stone-600',  chipBg: 'bg-stone-50 border-stone-200 hover:bg-stone-100 hover:border-stone-300',   labelFg: 'text-stone-700',  otherSpecial: true },
+  CentralLock:{ Icon: Wrench,    iconBg: 'bg-stone-200',  iconFg: 'text-stone-600',  chipBg: 'bg-stone-50 border-stone-200 hover:bg-stone-100 hover:border-stone-300',   labelFg: 'text-stone-700',  otherSpecial: true },
+};
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -86,6 +93,11 @@ export default function POSDashboard() {
   const [productQuery, setProductQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<ProductCategory | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const { selected: selectedBiz } = useBusiness();
+  const CATS = (selectedBiz?.posCategories ?? [])
+    .filter((c) => c.enabled && CAT_META[c.value])
+    .map((c) => ({ ...CAT_META[c.value], value: c.value as ProductCategory, label: c.label }));
 
   const vehicle = usePOSCartStore((s) => s.bills[s.activeBillId]?.vehicle ?? null);
   const isCreditEligible = !!(vehicle?.customer?.name && vehicle?.customer?.phone);
@@ -201,7 +213,7 @@ export default function POSDashboard() {
 
   return (
     <>
-      <div className="fixed top-12 lg:top-0 left-0 lg:left-60 right-0 bottom-0 overflow-hidden bg-white" style={{ zIndex: 10 }}>
+      <div className="fixed top-12 md:top-0 left-0 md:left-60 right-0 bottom-0 overflow-hidden bg-white" style={{ zIndex: 10 }}>
       <div className="flex flex-col h-full max-w-[1440px] mx-auto overflow-hidden">
 
         {/* Bill tabs */}
@@ -546,7 +558,7 @@ export default function POSDashboard() {
             <div className="bg-[#2D2C28] px-5 py-4 flex items-center justify-between shrink-0">
               <div>
                 <p className="text-[11px] font-bold text-white/40 tracking-[0.1em] uppercase">บิลปัจจุบัน</p>
-                <p className="text-sm font-bold text-white mt-0.5 leading-none">Korat Air &amp; Sound</p>
+                <p className="text-sm font-bold text-white mt-0.5 leading-none">{selectedBiz?.name ?? 'ร้านของฉัน'}</p>
               </div>
               {items.length > 0 && (
                 <AlertDialog>

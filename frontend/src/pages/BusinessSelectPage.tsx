@@ -2,12 +2,21 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Building2, Plus, Phone, MapPin, ChevronRight, X, Check, Pencil, Trash2, Car } from 'lucide-react';
 import { useBusiness } from '@/context/BusinessContext';
-import type { Business } from '@/lib/business';
+import type { Business, PosCategory } from '@/lib/business';
+import { CATEGORY_PRESETS } from '@/lib/business';
 
 // ── Create / Edit form ────────────────────────────────────────────────────────
 
-interface FormData { name: string; tagline: string; address: string; phone: string; }
-const EMPTY: FormData = { name: '', tagline: '', address: '', phone: '' };
+interface FormData {
+  name: string; tagline: string; address: string; phone: string;
+  printWidth: 58 | 80; receiptFooter: string;
+  posCategories: PosCategory[];
+}
+const EMPTY: FormData = {
+  name: '', tagline: '', address: '', phone: '',
+  printWidth: 58, receiptFooter: 'ขอบคุณที่ใช้บริการ',
+  posCategories: CATEGORY_PRESETS.auto.categories,
+};
 
 function BusinessForm({
   initial = EMPTY,
@@ -60,6 +69,79 @@ function BusinessForm({
               rows={2}
               className="w-full px-4 py-3 text-sm bg-[#F7F5F2] border-0 rounded-2xl focus:ring-2 focus:ring-[#3B3A36]/15 focus:outline-none transition-all resize-none"
             />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[#878681] uppercase tracking-wide mb-1.5">ขนาดกระดาษปริ้น</label>
+            <div className="flex gap-2">
+              {([58, 80] as const).map((w) => (
+                <button
+                  key={w}
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, printWidth: w }))}
+                  className={`flex-1 h-11 rounded-2xl text-sm font-semibold transition-all ${
+                    form.printWidth === w ? 'bg-[#3B3A36] text-white' : 'bg-[#F7F5F2] text-[#878681] hover:bg-[#ECEAE6]'
+                  }`}
+                >
+                  {w} mm
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[#878681] uppercase tracking-wide mb-1.5">ข้อความท้ายใบเสร็จ</label>
+            <input
+              type="text"
+              value={form.receiptFooter}
+              onChange={set('receiptFooter')}
+              placeholder="ขอบคุณที่ใช้บริการ"
+              className="w-full h-11 px-4 text-sm bg-[#F7F5F2] border-0 rounded-2xl focus:ring-2 focus:ring-[#3B3A36]/15 focus:outline-none transition-all"
+            />
+          </div>
+
+          {/* POS Category config */}
+          <div>
+            <label className="block text-xs font-semibold text-[#878681] uppercase tracking-wide mb-2">หมวดหมู่หน้า POS</label>
+            {/* Preset buttons */}
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {Object.entries(CATEGORY_PRESETS).map(([key, preset]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, posCategories: preset.categories.map(c => ({ ...c })) }))}
+                  className="px-3 h-7 rounded-lg text-xs font-medium bg-[#F0EDE8] text-[#4A4845] hover:bg-[#E5E2DE] transition-colors"
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+            {/* Toggle + rename each category */}
+            <div className="space-y-2">
+              {form.posCategories.map((cat, idx) => (
+                <div key={cat.value} className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => {
+                      const cats = f.posCategories.map((c, i) => i === idx ? { ...c, enabled: !c.enabled } : c);
+                      return { ...f, posCategories: cats };
+                    })}
+                    className={`w-10 h-6 rounded-full transition-colors shrink-0 ${cat.enabled ? 'bg-[#3B3A36]' : 'bg-[#D5D2CE]'}`}
+                  >
+                    <div className={`w-4 h-4 bg-white rounded-full mx-1 transition-transform ${cat.enabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                  </button>
+                  <input
+                    type="text"
+                    value={cat.label}
+                    onChange={(e) => setForm((f) => {
+                      const cats = f.posCategories.map((c, i) => i === idx ? { ...c, label: e.target.value } : c);
+                      return { ...f, posCategories: cats };
+                    })}
+                    className={`flex-1 h-9 px-3 text-sm rounded-xl border-0 focus:ring-2 focus:ring-[#3B3A36]/15 focus:outline-none transition-all ${
+                      cat.enabled ? 'bg-[#F7F5F2] text-[#111110]' : 'bg-[#F0EDE8] text-[#9A9794] line-through'
+                    }`}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
         <div className="px-6 pb-6 flex gap-2">
@@ -265,6 +347,9 @@ export default function BusinessSelectPage() {
             tagline: modal.biz.tagline,
             address: modal.biz.address,
             phone: modal.biz.phone,
+            printWidth: modal.biz.printWidth ?? 58,
+            receiptFooter: modal.biz.receiptFooter ?? 'ขอบคุณที่ใช้บริการ',
+            posCategories: modal.biz.posCategories ?? CATEGORY_PRESETS.auto.categories,
           }}
           onSave={(data) => handleEdit(modal.biz, data)}
           onCancel={() => setModal(null)}

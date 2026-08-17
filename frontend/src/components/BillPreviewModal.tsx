@@ -5,16 +5,23 @@ import { usePDFExport } from '@/hooks/usePDFExport';
 import { Button } from '@/components/ui/button';
 import { useBusiness } from '@/context/BusinessContext';
 import type { Order } from '@/types';
+import type { Business } from '@/lib/business';
 
-// ── 58mm browser print ────────────────────────────────────────────────────────
+// ── Thermal receipt print ─────────────────────────────────────────────────────
 
 function thb2(n: number) {
   return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function print58mm(order: Order, docType: 'receipt' | 'quotation' | 'invoice', shopName = 'Korat Air & Sound') {
+interface PrintBiz {
+  name: string; tagline: string; phone: string; printWidth: 58 | 80; receiptFooter: string;
+}
+
+function print58mm(order: Order, docType: 'receipt' | 'quotation' | 'invoice', biz: PrintBiz) {
   const docLabel = { receipt: 'ใบเสร็จรับเงิน', quotation: 'ใบเสนอราคา', invoice: 'ใบวางบิล' }[docType];
   const isReceipt = docType === 'receipt';
+  const paperW = biz.printWidth ?? 58;
+  const contentMM = paperW === 80 ? 62 : 44;
 
   const orderDate = new Date(order.createdAt);
   const dateStr = orderDate.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: '2-digit' });
@@ -30,7 +37,7 @@ function print58mm(order: Order, docType: 'receipt' | 'quotation' | 'invoice', s
   const SCALE = 4;
   const DPI   = 203;
   const PPM   = DPI / 25.4;
-  const W     = Math.round(44 * PPM) * SCALE;   // 702px (prints at 44mm CSS)
+  const W     = Math.round(contentMM * PPM) * SCALE;
   const PAD   = Math.round(2 * PPM) * SCALE;
   const TW    = W - PAD * 2;
   const PX    = (pt: number) => Math.round(pt * DPI / 72) * SCALE;
@@ -85,9 +92,9 @@ function print58mm(order: Order, docType: 'receipt' | 'quotation' | 'invoice', s
 
   // Header
   G(4);
-  T(shopName,                                     SZ.shop, 900, 'c');
-  T('ประดับยนต์ · ติดตั้งฟิล์ม · ซ่อมแอร์',       SZ.body, 700, 'c');
-  T('093-321-8634',                               SZ.body, 700, 'c');
+  T(biz.name,        SZ.shop, 900, 'c');
+  if (biz.tagline) T(biz.tagline, SZ.body, 700, 'c');
+  if (biz.phone)   T(biz.phone,  SZ.body, 700, 'c');
   G(3); HR(); G(2);
   T(`--- ${docLabel} ---`,                        SZ.doc,  900, 'c');
   G(2); HR(); G(3);
@@ -138,13 +145,13 @@ function print58mm(order: Order, docType: 'receipt' | 'quotation' | 'invoice', s
 
   // Footer
   if (isReceipt) {
-    T('*** ขอบคุณที่ใช้บริการ ***',         SZ.body, 900, 'c');
-    T('กรุณาเก็บใบเสร็จนี้ไว้เป็นหลักฐาน', SZ.body, 700, 'c');
-    T('นำใบเสร็จมาแสดงเมื่อรับประกัน',      SZ.body, 700, 'c');
+    T(`*** ${biz.receiptFooter || 'ขอบคุณที่ใช้บริการ'} ***`, SZ.body, 900, 'c');
+    T('กรุณาเก็บใบเสร็จนี้ไว้เป็นหลักฐาน',                    SZ.body, 700, 'c');
+    T('นำใบเสร็จมาแสดงเมื่อรับประกัน',                         SZ.body, 700, 'c');
   } else {
     T('ใบเสนอราคามีอายุ 30 วัน',            SZ.body, 900, 'c');
     T('กรุณาตรวจสอบรายการก่อนยืนยัน',       SZ.body, 700, 'c');
-    T('โทร 093-321-8634',                   SZ.body, 700, 'c');
+    if (biz.phone) T(`โทร ${biz.phone}`,    SZ.body, 700, 'c');
   }
   G(0);
 
@@ -229,9 +236,9 @@ function print58mm(order: Order, docType: 'receipt' | 'quotation' | 'invoice', s
   // ── Print as base64 image via iframe ──────────────────────────────────────
   const dataUrl = canvas.toDataURL('image/png');
   const html = `<!DOCTYPE html><html><head><style>
-    @page{size:58mm auto;margin:0 0 -25mm 0}
+    @page{size:${paperW}mm auto;margin:0 0 -25mm 0}
     html,body{margin:0;padding:0;height:fit-content}
-    img{width:44mm;display:block;margin:0;padding:0}
+    img{width:${contentMM}mm;display:block;margin:0;padding:0}
   </style></head><body><img src="${dataUrl}"></body></html>`;
 
 
@@ -430,7 +437,13 @@ export function BillPreviewModal({
           {docType === 'receipt' && (
             <Button
               variant="outline"
-              onClick={() => print58mm(order, docType, selectedBusiness?.name)}
+              onClick={() => print58mm(order, docType, {
+                name: selectedBusiness?.name ?? 'ร้านของฉัน',
+                tagline: selectedBusiness?.tagline ?? '',
+                phone: selectedBusiness?.phone ?? '',
+                printWidth: (selectedBusiness as Business | null)?.printWidth ?? 58,
+                receiptFooter: (selectedBusiness as Business | null)?.receiptFooter ?? 'ขอบคุณที่ใช้บริการ',
+              })}
               className="text-[#4A4845]"
             >
               <Printer className="mr-2 h-4 w-4" />

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Loader2, Infinity } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Loader2, Infinity, AlertCircle, RefreshCw } from 'lucide-react';
 import { getReportSummary } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import type { ReportSummary } from '@/lib/api';
@@ -200,11 +200,13 @@ function CategoryCard({ category, revenue, orders, pct }: CategoryCardProps) {
 export default function ReportsPage() {
   const [chartView, setChartView]     = useState<ChartView>('monthly');
   const [monthPreset, setMonthPreset] = useState(12);
+  const queryClient = useQueryClient();
 
   const { data, isPending, isError } = useQuery<ReportSummary>({
     queryKey: ['reports', 'summary', monthPreset],
     queryFn:  () => getReportSummary({ days: 30, months: monthPreset }),
     staleTime: 60_000,
+    retry: 1,
   });
 
   if (isPending) {
@@ -215,7 +217,30 @@ export default function ReportsPage() {
     );
   }
   if (isError || !data) {
-    return <div className="text-center py-16 text-red-500 text-sm">โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่</div>;
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-[#1A1917] tracking-tight">สรุปยอดขาย</h1>
+          <p className="text-sm text-[#878681] mt-0.5">ภาพรวมรายได้และสถิติออเดอร์</p>
+        </div>
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center">
+            <AlertCircle className="h-7 w-7 text-red-400" strokeWidth={1.5} />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-semibold text-[#2D2D2D]">เชื่อมต่อ backend ไม่ได้</p>
+            <p className="text-xs text-[#9B9894] mt-1">ตรวจสอบว่า backend กำลังทำงานอยู่</p>
+          </div>
+          <button
+            onClick={() => queryClient.refetchQueries({ queryKey: ['reports'] })}
+            className="flex items-center gap-2 px-4 py-2 bg-[#3B3A36] hover:opacity-90 text-white text-sm font-medium rounded-xl transition-all"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            ลองใหม่
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const chartData =

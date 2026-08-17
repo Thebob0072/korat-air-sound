@@ -36,7 +36,7 @@ function AppInner() {
             <div className="flex min-h-screen bg-[#ECEAE6]">
               <Sidebar />
               {/* pt-12 = height of mobile top bar; removed on lg+ */}
-              <div className="flex-1 flex flex-col min-w-0 pt-12 lg:pt-0">
+              <div className="flex-1 flex flex-col min-w-0 pt-12 md:pt-0">
                 <main className="flex-1 mx-auto px-4 sm:px-8 py-6 sm:py-8 max-w-screen-xl w-full">
                   <Routes>
                     <Route path="/" element={<POSDashboard />} />
