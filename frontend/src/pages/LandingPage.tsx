@@ -564,7 +564,7 @@ export default function LandingPage() {
               </a>
             ))}
           </div>
-          <p className="text-[12px] text-white/18">© 2025 KoratPOS · Made in Thailand</p>
+          <p className="text-[12px] text-white/18">© 2026 KoratPOS · Made in Thailand</p>
         </div>
       </footer>
     </div>

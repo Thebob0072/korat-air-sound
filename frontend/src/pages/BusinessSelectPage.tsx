@@ -326,7 +326,7 @@ export default function BusinessSelectPage() {
           disabled={!selected}
           className="w-full h-14 bg-[#3B3A36] hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed text-white text-base font-bold rounded-2xl transition-all shadow-[0_4px_16px_rgb(0,0,0,0.15)] flex items-center justify-center gap-2"
         >
-          เข้าสู่ระบบ
+          ยืนยันธุรกิจ
           <ChevronRight className="h-5 w-5" />
         </button>
       </div>

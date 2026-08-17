@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Wind,
   Eye,
@@ -18,8 +19,9 @@ import {
   AlertCircle,
   UserPlus,
   ChevronLeft,
+  Send,
 } from 'lucide-react';
-import { searchVehicles, getProducts } from '@/lib/api';
+import { searchVehicles, getProducts, submitBill, updateOrderStatus } from '@/lib/api';
 import VehicleRegistrationModal from '@/components/VehicleRegistrationModal';
 import { CheckoutModal } from '@/components/CheckoutModal';
 import { TintingModal } from '@/components/TintingModal';
@@ -93,6 +95,9 @@ export default function POSDashboard() {
   const [productQuery, setProductQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<ProductCategory | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { selected: selectedBiz } = useBusiness();
   const CATS = (selectedBiz?.posCategories ?? [])
@@ -199,6 +204,38 @@ export default function POSDashboard() {
     setSearchError('');
     setTimeout(() => productInputRef.current?.focus(), 80);
   };
+
+  const UUID_RE_POS = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  const sendToWorkMutation = useMutation({
+    mutationFn: async () => {
+      if (!vehicle) throw new Error('ไม่พบข้อมูลรถ กรุณาค้นหาก่อน');
+      if (items.length === 0) throw new Error('ไม่มีรายการในบิล');
+      const order = await submitBill({
+        vehicleId: vehicle.id,
+        discount: storeDiscount,
+        items: items.map((item) => {
+          const isReal = UUID_RE_POS.test(item.product.id);
+          return {
+            productId: isReal ? item.product.id : undefined,
+            customLabel: isReal ? undefined : item.product.name,
+            unitPrice: isReal ? undefined : Number(item.product.sellingPrice),
+            quantity: item.quantity,
+            technicianName: item.technicianName,
+            metadata: item.meta ? (item.meta as unknown as Record<string, unknown>) : undefined,
+          };
+        }),
+      });
+      await updateOrderStatus(order.id, 'InProgress');
+      return order.id;
+    },
+    onSuccess: (orderId) => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      clearCart();
+      setBillView(false);
+      navigate(`/orders/${orderId}`);
+    },
+  });
 
   const handleNewCustomer = () => {
     clearCart();
@@ -732,6 +769,23 @@ export default function POSDashboard() {
                 <CreditCard className="h-4 w-4" />
                 ชำระเงิน
               </button>
+
+              {/* รับรถ — ส่งงาน จ่ายทีหลัง */}
+              <button
+                onClick={() => sendToWorkMutation.mutate()}
+                disabled={items.length === 0 || !vehicle || sendToWorkMutation.isPending}
+                className="w-full py-3 bg-amber-50 hover:bg-amber-100 active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed text-amber-800 text-sm font-semibold rounded-2xl transition-all duration-200 border border-amber-200 flex items-center justify-center gap-2"
+              >
+                {sendToWorkMutation.isPending
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <Send className="h-4 w-4" />}
+                รับรถ · จ่ายทีหลัง
+              </button>
+              {sendToWorkMutation.isError && (
+                <p className="text-[11px] text-red-400 text-center -mt-1">
+                  {(sendToWorkMutation.error as Error).message}
+                </p>
+              )}
 
               {/* Secondary row */}
               <div className={`grid gap-2 ${isCreditEligible ? 'grid-cols-2' : 'grid-cols-1'}`}>

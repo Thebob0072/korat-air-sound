@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, FileText, AlertCircle, RefreshCw } from 'lucide-react';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { Loader2, FileText, AlertCircle, RefreshCw, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Pagination, PageSizeSelector } from '@/components/ui/pagination';
 import { usePagination } from '@/hooks/usePagination';
-import { getOrders } from '@/lib/api';
+import { getOrders, updateOrderStatus } from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { isSameDay } from 'date-fns';
 import type { OrderStatus } from '@/types';
@@ -46,6 +46,21 @@ const STATUS_BADGE: Record<OrderStatus, BadgeVariant> = {
   Cancelled: 'destructive',
 };
 
+const NEXT_STATUS: Partial<Record<OrderStatus, OrderStatus>> = {
+  Draft:           'InProgress',
+  Quoted:          'InProgress',
+  InProgress:      'Ready',
+  WaitingForParts: 'Ready',
+};
+
+const NEXT_LABEL: Partial<Record<OrderStatus, string>> = {
+  Draft:           'รับรถแล้ว',
+  Quoted:          'รับรถแล้ว',
+  InProgress:      'งานเสร็จ',
+  WaitingForParts: 'งานเสร็จ',
+  Ready:           'ชำระเงิน',
+};
+
 const FILTERS: { value: string; label: string; dot?: string }[] = [
   { value: '',                label: 'ทั้งหมด' },
   { value: 'InProgress',     label: 'กำลังซ่อม',   dot: 'bg-sky-400' },
@@ -63,6 +78,17 @@ export default function OrdersPage() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState('');
   const [dateFilter, setDateFilter] = useState<Date | undefined>();
+
+  const advanceMutation = useMutation({
+    mutationFn: ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
+      const next = NEXT_STATUS[status];
+      if (!next) throw new Error('ไม่มีสถานะถัดไป');
+      return updateOrderStatus(orderId, next);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders', filter] });
+    },
+  });
 
   const { data: orders = [], isPending, isError } = useQuery({
     queryKey: ['orders', filter],
@@ -164,44 +190,72 @@ export default function OrdersPage() {
               </div>
             ) : (
               <div className="divide-y divide-[#F0EDE8]">
-                {paged.map((order) => (
-                  <button
-                    key={order.id}
-                    onClick={() => navigate(`/orders/${order.id}`)}
-                    className="w-full text-left px-4 py-3.5 active:bg-[#F7F5F2] transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className={`w-2 h-2 rounded-full shrink-0 mt-[3px] ${STATUS_DOT_ROW[order.status]}`} />
-                        <span className="font-mono font-black text-[15px] tracking-wide text-[#2D2D2D] leading-tight">
-                          {order.vehicle?.licensePlate ?? '—'}
-                        </span>
+                {paged.map((order) => {
+                  const isPendingThis = advanceMutation.isPending && advanceMutation.variables?.orderId === order.id;
+                  const nextLabel = NEXT_LABEL[order.status];
+                  return (
+                    <div key={order.id}>
+                      <div
+                        onClick={() => navigate(`/orders/${order.id}`)}
+                        className="w-full text-left px-4 py-3.5 active:bg-[#F7F5F2] transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className={`w-2 h-2 rounded-full shrink-0 mt-[3px] ${STATUS_DOT_ROW[order.status]}`} />
+                            <span className="font-mono font-black text-[15px] tracking-wide text-[#2D2D2D] leading-tight">
+                              {order.vehicle?.licensePlate ?? '—'}
+                            </span>
+                          </div>
+                          <span className="font-mono font-bold text-[#2D2D2D] shrink-0 tabular-nums">
+                            {formatCurrency(order.totalAmount)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between mt-1.5 pl-4">
+                          <div className="flex items-center gap-1.5 min-w-0 mr-2">
+                            <span className="text-xs text-[#878681] truncate">
+                              {order.vehicle?.customer?.name ?? order.vehicle?.customer?.phone ?? '—'}
+                            </span>
+                            <span className="text-[#D8D5D0] text-xs shrink-0">·</span>
+                            <span className="text-xs text-[#9B9894] shrink-0">
+                              {formatDate(order.createdAt).split(' ')[0]}
+                            </span>
+                          </div>
+                          <Badge variant={STATUS_BADGE[order.status]} className="shrink-0">
+                            {STATUS_LABELS[order.status]}
+                          </Badge>
+                        </div>
+                        {order.status === 'InvoicePending' && order.dueDate && (
+                          <p className={`text-[10px] font-semibold mt-1 pl-4 ${new Date(order.dueDate) < new Date() ? 'text-red-500' : 'text-blue-500'}`}>
+                            ครบ {new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short' }).format(new Date(order.dueDate))}
+                          </p>
+                        )}
                       </div>
-                      <span className="font-mono font-bold text-[#2D2D2D] shrink-0 tabular-nums">
-                        {formatCurrency(order.totalAmount)}
-                      </span>
+                      {nextLabel && (
+                        <div className="px-4 py-2 border-t border-[#F7F5F2] bg-[#FDFCFA] flex justify-end">
+                          {order.status === 'Ready' ? (
+                            <button
+                              onClick={() => navigate(`/orders/${order.id}`)}
+                              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-[#3B3A36] text-white hover:opacity-90 transition-all"
+                            >
+                              {nextLabel}
+                              <ChevronRight className="h-3 w-3" />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => advanceMutation.mutate({ orderId: order.id, status: order.status })}
+                              disabled={isPendingThis}
+                              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-white border border-[#E5E5E3] hover:border-[#3B3A36]/30 text-[#3B3A36] transition-all disabled:opacity-40"
+                            >
+                              {isPendingThis && <Loader2 className="h-3 w-3 animate-spin" />}
+                              {nextLabel}
+                              <ChevronRight className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center justify-between mt-1.5 pl-4">
-                      <div className="flex items-center gap-1.5 min-w-0 mr-2">
-                        <span className="text-xs text-[#878681] truncate">
-                          {order.vehicle?.customer?.name ?? order.vehicle?.customer?.phone ?? '—'}
-                        </span>
-                        <span className="text-[#D8D5D0] text-xs shrink-0">·</span>
-                        <span className="text-xs text-[#9B9894] shrink-0">
-                          {formatDate(order.createdAt).split(' ')[0]}
-                        </span>
-                      </div>
-                      <Badge variant={STATUS_BADGE[order.status]} className="shrink-0">
-                        {STATUS_LABELS[order.status]}
-                      </Badge>
-                    </div>
-                    {order.status === 'InvoicePending' && order.dueDate && (
-                      <p className={`text-[10px] font-semibold mt-1 pl-4 ${new Date(order.dueDate) < new Date() ? 'text-red-500' : 'text-blue-500'}`}>
-                        ครบ {new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short' }).format(new Date(order.dueDate))}
-                      </p>
-                    )}
-                  </button>
-                ))}
+                  );
+                })}
               </div>
             )}
             <div className="px-4 pb-4">

@@ -154,6 +154,22 @@ export default function OrderDetailPage() {
     },
   });
 
+  const markInProgressMutation = useMutation({
+    mutationFn: () => updateOrderStatus(id!, 'InProgress'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['order', id] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+    },
+  });
+
+  const markReadyMutation = useMutation({
+    mutationFn: () => updateOrderStatus(id!, 'Ready'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['order', id] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+    },
+  });
+
   const payMutation = useMutation({
     mutationFn: () => processPayment(id!),
     onSuccess: () => {
@@ -226,6 +242,20 @@ export default function OrderDetailPage() {
 
   const canEdit = order.status === 'Draft' || order.status === 'Quoted';
   const canPay = ['Quoted', 'InProgress', 'WaitingForParts', 'Ready'].includes(order.status);
+
+  // ── Status stepper ────────────────────────────────────────────────────────
+  const WORK_STEPS = [
+    { label: 'สร้างบิล',    statuses: ['Draft', 'Quoted'] as OrderStatus[] },
+    { label: 'รับรถแล้ว',  statuses: ['InProgress', 'WaitingForParts'] as OrderStatus[] },
+    { label: 'ดำเนินงาน',  statuses: ['Ready', 'InvoicePending'] as OrderStatus[] },
+    { label: 'ชำระเงิน',   statuses: ['Paid'] as OrderStatus[] },
+  ];
+  const currentWorkStep = WORK_STEPS.findIndex((s) => s.statuses.includes(order.status));
+  const STEP_ADVANCE: Partial<Record<number, { label: string; action: () => void; pending: boolean }>> = {
+    0: { label: 'รับรถแล้ว →', action: () => markInProgressMutation.mutate(), pending: markInProgressMutation.isPending },
+    1: { label: 'งานเสร็จ →',  action: () => markReadyMutation.mutate(),       pending: markReadyMutation.isPending },
+    2: { label: 'ชำระเงิน →',  action: () => setShowPayConfirm(true),          pending: false },
+  };
   const isEditable = canEdit && editMode;
   const hasItems = (order.orderItems?.length ?? 0) > 0;
 
@@ -352,6 +382,51 @@ export default function OrderDetailPage() {
             )}
           </div>
         </div>
+
+        {/* ── Status stepper ────────────────────────────────────────────── */}
+        {order.status !== 'Cancelled' && currentWorkStep !== -1 && (
+          <div className="bg-white rounded-[20px] border border-[#E5E5E3] px-5 py-4 flex items-center gap-4">
+            <div className="flex-1 flex items-center">
+              {WORK_STEPS.map(({ label }, i) => {
+                const isDone = currentWorkStep > i;
+                const isActive = currentWorkStep === i;
+                return (
+                  <div key={label} className="flex items-center flex-1 last:flex-none">
+                    <div className="flex flex-col items-center gap-1 shrink-0">
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                        isDone    ? 'bg-[#3B3A36] text-white' :
+                        isActive  ? 'bg-[#3B3A36] text-white shadow-[0_0_0_4px_rgba(59,58,54,0.12)]' :
+                                    'bg-[#F0EDE8] text-[#B0ADA8]'
+                      }`}>
+                        {isDone ? '✓' : i + 1}
+                      </div>
+                      <span className={`text-[9px] font-medium leading-none whitespace-nowrap ${
+                        isActive ? 'text-[#2D2D2D]' : isDone ? 'text-[#6B6865]' : 'text-[#B0ADA8]'
+                      }`}>
+                        {label}
+                      </span>
+                    </div>
+                    {i < 3 && (
+                      <div className={`flex-1 h-px mx-1 mb-3.5 ${isDone ? 'bg-[#3B3A36]' : 'bg-[#E5E5E3]'}`} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {STEP_ADVANCE[currentWorkStep] && (
+              <button
+                onClick={STEP_ADVANCE[currentWorkStep]!.action}
+                disabled={STEP_ADVANCE[currentWorkStep]!.pending || isAnyMutating}
+                className="shrink-0 h-9 px-4 bg-[#3B3A36] hover:opacity-90 disabled:opacity-40 text-white text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5"
+              >
+                {STEP_ADVANCE[currentWorkStep]!.pending && (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                )}
+                {STEP_ADVANCE[currentWorkStep]!.label}
+              </button>
+            )}
+          </div>
+        )}
 
         {actionError && (
           <div className="bg-red-50 text-red-600 text-sm rounded-2xl px-5 py-3 border border-red-100">
