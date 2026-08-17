@@ -26,121 +26,138 @@ function print58mm(order: Order, docType: 'receipt' | 'quotation' | 'invoice', s
   const discount = subtotal - total;
   const hasDiscount = discount > 0.005;
 
-  // ── Canvas-based raster rendering ────────────────────────────────────────────
-  // Thermal printer = raster device. Rendering as pixels avoids all font/antialiasing issues.
+  // ── Canvas setup (203 DPI × 4x render for sharp downscale) ─────────────────
+  const SCALE = 4;
+  const DPI   = 203;
+  const PPM   = DPI / 25.4;
+  const W     = Math.round(44 * PPM) * SCALE;   // 702px (prints at 44mm CSS)
+  const PAD   = Math.round(2 * PPM) * SCALE;
+  const TW    = W - PAD * 2;
+  const PX    = (pt: number) => Math.round(pt * DPI / 72) * SCALE;
 
-  const DPI = 203;
-  const PX_PER_MM = DPI / 25.4;
-  const W = Math.round(54 * PX_PER_MM);   // 431px printable width
-  const M = Math.round(1 * PX_PER_MM);    // 1mm side margin
-  const TW = W - M * 2;                   // text area width
-  const PT = DPI / 72;                    // 1pt → px
+  // Sizes in pt — compact for 58mm thermal
+  const SZ = { shop: 8, body: 6, plate: 9, total: 11, doc: 7 };
 
-  const FONT_BODY = 10.5;
-  const FONT_SM   = 10;
-  const FONT_LG   = 15;
-  const FONT_XL   = 20;
+  const mkFont = (pt: number, fw = 800) =>
+    `${fw} ${PX(pt)}px Arial, Tahoma, sans-serif`;
 
-  const mkFont = (ptSize: number, weight = 900) =>
-    `${weight} ${Math.round(ptSize * PT)}px Tahoma, "Arial Unicode MS", Arial, sans-serif`;
-
-  // Measure text width
+  // Shared off-screen canvas for measuring
   const mc = document.createElement('canvas').getContext('2d')!;
-  const tw = (text: string, ptSize: number, weight = 900) => {
-    mc.font = mkFont(ptSize, weight);
-    return mc.measureText(text).width;
+  const measure = (s: string, pt: number, fw = 800) => {
+    mc.font = mkFont(pt, fw);
+    return mc.measureText(s).width;
   };
 
-  // Wrap text to fit TW
-  const wrap = (text: string, ptSize: number, weight = 900): string[] => {
-    const lines: string[] = [];
+  // Wrap text that exceeds TW — char by char (works for Thai)
+  const wrap = (s: string, pt: number, fw = 800): string[] => {
+    const out: string[] = [];
     let cur = '';
-    for (const ch of text) {
-      if (tw(cur + ch, ptSize, weight) > TW) { lines.push(cur); cur = ch; }
+    for (const ch of s) {
+      if (measure(cur + ch, pt, fw) > TW) { out.push(cur); cur = ch; }
       else cur += ch;
     }
-    if (cur) lines.push(cur);
-    return lines.length ? lines : [''];
+    if (cur) out.push(cur);
+    return out.length ? out : [''];
   };
 
-  type DrawOp =
-    | { t: 'text'; s: string; pt: number; w?: number; align?: 'c'|'r' }
-    | { t: 'cols'; l: string; r: string; pt: number; rw?: number }
-    | { t: 'hr'; dash?: boolean }
+  // ── Op list ───────────────────────────────────────────────────────────────
+  type Op =
+    | { t: 'txt'; s: string; pt: number; fw?: number; align?: 'c' | 'r' }
+    | { t: 'col'; l: string; r: string; pt: number; fw?: number }
+    | { t: 'hr';  dash?: boolean }
     | { t: 'gap'; h: number };
 
-  const ops: DrawOp[] = [];
-  const lh = (pt: number) => Math.round(pt * PT * 1.5); // line height
+  const ops: Op[] = [];
 
-  // Helper builders
-  const text  = (s: string, pt = FONT_BODY, w?: number, align?: 'c'|'r') => ops.push({ t: 'text', s, pt, w, align });
-  const cols  = (l: string, r: string, pt = FONT_BODY, rw?: number)       => ops.push({ t: 'cols', l, r, pt, rw });
-  const hr    = (dash = false)                                              => ops.push({ t: 'hr', dash });
-  const gap   = (h: number)                                                 => ops.push({ t: 'gap', h });
+  // Line height = 1.9× font px — enough room for Thai tone marks
+  const LH = (pt: number) => Math.round(PX(pt) * 1.9);
+  // Baseline offset inside each line slot
+  const BL = (pt: number) => Math.round(PX(pt) * 1.1);
 
-  // ── Build receipt ops ────────────────────────────────────────────────────────
-  gap(6);
-  text(shopName, FONT_LG, 900, 'c');
-  text('ประดับยนต์ · ติดตั้งฟิล์ม · ซ่อมแอร์', FONT_SM, 700, 'c');
-  text('064-496-5333', FONT_SM, 700, 'c');
-  gap(4); hr(); gap(3);
-  text(`--- ${docLabel} ---`, 12, 900, 'c');
-  gap(3); hr(); gap(4);
-  cols('เลขที่', order.orderNumber, FONT_SM);
-  cols('วันที่', `${dateStr} เวลา ${timeStr} น.`, FONT_SM);
-  gap(4); hr(true); gap(4);
+  const T = (s: string, pt: number, fw?: number, align?: 'c' | 'r') =>
+    ops.push({ t: 'txt', s, pt, fw, align });
+  const C = (l: string, r: string, pt: number, fw?: number) =>
+    ops.push({ t: 'col', l, r, pt, fw });
+  const HR = (dash = false) => ops.push({ t: 'hr', dash });
+  const G  = (h: number)    => ops.push({ t: 'gap', h: h * SCALE });
 
-  const v = order.vehicle;
+  // ── Layout ────────────────────────────────────────────────────────────────
+
+  // Header
+  G(4);
+  T(shopName,                                     SZ.shop, 900, 'c');
+  T('ประดับยนต์ · ติดตั้งฟิล์ม · ซ่อมแอร์',       SZ.body, 700, 'c');
+  T('093-321-8634',                               SZ.body, 700, 'c');
+  G(3); HR(); G(2);
+  T(`--- ${docLabel} ---`,                        SZ.doc,  900, 'c');
+  G(2); HR(); G(3);
+
+  // Order ref
+  C('เลขที่', order.orderNumber,                  SZ.body);
+  C('วันที่', `${dateStr} เวลา ${timeStr} น.`,   SZ.body);
+  G(3); HR(true); G(3);
+
+  // Vehicle / customer
+  const v    = order.vehicle;
   const cust = v?.customer;
-  if (v?.licensePlate) text(v.licensePlate, FONT_LG + 1, 900);
-  if (v?.brand || v?.model) text([v?.brand, v?.model].filter(Boolean).join(' '), FONT_SM);
-  if (cust?.name)  text(`ลูกค้า: ${cust.name}`, FONT_SM);
-  if (cust?.phone) text(`โทร: ${cust.phone}`, FONT_SM);
-  gap(4); hr(true); gap(4);
+  if (v?.licensePlate)
+    wrap(v.licensePlate, SZ.plate, 900).forEach(l => T(l, SZ.plate, 900));
+  if (v?.brand || v?.model)
+    T([v?.brand, v?.model].filter(Boolean).join(' '), SZ.body, 700);
+  if (cust?.name)
+    T(`ลูกค้า: ${cust.name}`,  SZ.body, 700);
+  if (cust?.phone)
+    T(`โทร: ${cust.phone}`,    SZ.body, 700);
+  G(3); HR(true); G(3);
 
-  text('รายการสินค้า / บริการ', FONT_SM);
-  gap(3);
+  // Items
+  T('รายการสินค้า / บริการ', SZ.body, 800);
+  G(2);
   items.forEach((item, i) => {
-    const name = item.customLabel ?? item.product?.name ?? '';
-    const qty  = Number(item.quantity);
+    const name  = item.customLabel ?? item.product?.name ?? '';
+    const qty   = Number(item.quantity);
     const price = Number(item.unitPrice);
-    const sub  = Number(item.subtotalPrice);
+    const sub   = Number(item.subtotalPrice);
     const label = `${i + 1}. ${name}${item.technicianName ? ` (${item.technicianName})` : ''}`;
-    wrap(label, FONT_BODY).forEach(l => text(l, FONT_BODY));
-    cols(`  ${qty % 1 === 0 ? qty : qty.toFixed(2)} × ฿${thb2(price)}`, `฿${thb2(sub)}`, FONT_BODY);
-    gap(3);
+    wrap(label, SZ.body, 800).forEach(l => T(l, SZ.body, 800));
+    C(`  ${qty % 1 === 0 ? qty : qty.toFixed(2)} x ฿${thb2(price)}`,
+      `฿${thb2(sub)}`, SZ.body, 700);
+    G(2);
   });
+  HR(); G(3);
 
-  hr(); gap(4);
+  // Totals
   if (hasDiscount) {
-    cols('ราคารวม', `฿${thb2(subtotal)}`, FONT_BODY);
-    cols('ส่วนลด', `-฿${thb2(discount)}`, FONT_BODY);
-    gap(3); hr(true); gap(3);
+    C('ราคารวม', `฿${thb2(subtotal)}`, SZ.body);
+    C('ส่วนลด',  `-฿${thb2(discount)}`, SZ.body);
+    G(2); HR(true); G(2);
   }
-  cols('ยอดชำระ', `฿${thb2(total)}`, FONT_XL);
-  gap(4); hr(); gap(6);
+  T('ยอดชำระ', SZ.body, 900);
+  T(`฿${thb2(total)}`, SZ.total, 900, 'r');
+  G(4); HR(); G(5);
 
+  // Footer
   if (isReceipt) {
-    text('*** ขอบคุณที่ใช้บริการ ***', FONT_SM, 900, 'c');
-    text('กรุณาเก็บใบเสร็จนี้ไว้เป็นหลักฐาน', FONT_SM, 700, 'c');
-    text('นำใบเสร็จมาแสดงเมื่อรับประกัน', FONT_SM, 700, 'c');
+    T('*** ขอบคุณที่ใช้บริการ ***',         SZ.body, 900, 'c');
+    T('กรุณาเก็บใบเสร็จนี้ไว้เป็นหลักฐาน', SZ.body, 700, 'c');
+    T('นำใบเสร็จมาแสดงเมื่อรับประกัน',      SZ.body, 700, 'c');
   } else {
-    text('ใบเสนอราคามีอายุ 30 วัน', FONT_SM, 900, 'c');
-    text('กรุณาตรวจสอบรายการก่อนยืนยัน', FONT_SM, 700, 'c');
-    text('โทร 064-496-5333', FONT_SM, 700, 'c');
+    T('ใบเสนอราคามีอายุ 30 วัน',            SZ.body, 900, 'c');
+    T('กรุณาตรวจสอบรายการก่อนยืนยัน',       SZ.body, 700, 'c');
+    T('โทร 093-321-8634',                   SZ.body, 700, 'c');
   }
-  gap(16);
+  G(0);
 
-  // ── Calculate total canvas height ─────────────────────────────────────────
+  // ── Compute canvas height ─────────────────────────────────────────────────
   let totalH = 0;
   for (const op of ops) {
-    if (op.t === 'gap')  totalH += op.h;
-    else if (op.t === 'hr')   totalH += 6;
-    else if (op.t === 'text') totalH += lh(op.pt);
-    else if (op.t === 'cols') totalH += lh(op.pt);
+    if (op.t === 'gap') totalH += op.h;
+    else if (op.t === 'hr')  totalH += 8 * SCALE;
+    else if (op.t === 'txt') totalH += LH(op.pt);
+    else if (op.t === 'col') totalH += LH(op.pt);
   }
 
-  // ── Draw onto canvas ──────────────────────────────────────────────────────
+  // ── Draw ──────────────────────────────────────────────────────────────────
   const canvas = document.createElement('canvas');
   canvas.width  = W;
   canvas.height = totalH;
@@ -154,42 +171,51 @@ function print58mm(order: Order, docType: 'receipt' | 'quotation' | 'invoice', s
   for (const op of ops) {
     if (op.t === 'gap') {
       y += op.h;
+
     } else if (op.t === 'hr') {
-      y += 2;
+      const mid = y + 4 * SCALE;
       if (op.dash) {
         ctx.save();
-        ctx.setLineDash([5, 4]);
+        ctx.setLineDash([6 * SCALE, 5 * SCALE]);
         ctx.strokeStyle = '#000';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.moveTo(M, y); ctx.lineTo(W - M, y); ctx.stroke();
+        ctx.lineWidth = 1.5 * SCALE;
+        ctx.beginPath(); ctx.moveTo(PAD, mid); ctx.lineTo(W - PAD, mid); ctx.stroke();
         ctx.restore();
       } else {
-        ctx.fillRect(M, y, TW, 2);
+        ctx.fillRect(PAD, mid, TW, 2 * SCALE);
       }
-      y += 4;
-    } else if (op.t === 'text') {
-      ctx.font = mkFont(op.pt, op.w ?? 900);
-      const lineH = lh(op.pt);
-      const baseline = y + Math.round(op.pt * PT * 0.82);
-      const textW = ctx.measureText(op.s).width;
-      let x = M;
-      if (op.align === 'c') x = M + (TW - textW) / 2;
-      else if (op.align === 'r') x = W - M - textW;
-      ctx.fillText(op.s, x, baseline);
+      y += 8 * SCALE;
+
+    } else if (op.t === 'txt') {
+      ctx.font = mkFont(op.pt, op.fw ?? 900);
+      const lineH = LH(op.pt);
+      const base  = y + BL(op.pt);
+      const tw    = ctx.measureText(op.s).width;
+      let x = PAD;
+      if (op.align === 'c') x = PAD + (TW - tw) / 2;
+      else if (op.align === 'r') x = W - PAD - tw;
+      ctx.fillText(op.s, x, base);
+      ctx.fillText(op.s, x + 0.5, base);
       y += lineH;
-    } else if (op.t === 'cols') {
-      ctx.font = mkFont(op.pt, op.rw ?? 900);
-      const lineH = lh(op.pt);
-      const baseline = y + Math.round(op.pt * PT * 0.82);
-      ctx.fillText(op.l, M, baseline);
-      const rw = ctx.measureText(op.r).width;
-      ctx.fillText(op.r, W - M - rw, baseline);
+
+    } else if (op.t === 'col') {
+      ctx.font = mkFont(op.pt, op.fw ?? 900);
+      const lineH = LH(op.pt);
+      const base  = y + BL(op.pt);
+      const rw    = ctx.measureText(op.r).width;
+      const maxL  = TW - rw - 12;
+      let left = op.l;
+      while (left.length > 1 && ctx.measureText(left).width > maxL)
+        left = left.slice(0, -1);
+      ctx.fillText(left, PAD, base);
+      ctx.fillText(left, PAD + 0.5, base);
+      ctx.fillText(op.r, W - PAD - rw, base);
+      ctx.fillText(op.r, W - PAD - rw + 0.5, base);
       y += lineH;
     }
   }
 
-  // ── Threshold: convert every pixel to pure black or pure white ───────────
-  // Thermal paper only has on/off dots — gray pixels print as faint noise.
+  // ── Threshold at 160 — captures anti-aliased edges as solid black ────────
   const imgData = ctx.getImageData(0, 0, W, totalH);
   const d = imgData.data;
   for (let i = 0; i < d.length; i += 4) {
@@ -203,9 +229,9 @@ function print58mm(order: Order, docType: 'receipt' | 'quotation' | 'invoice', s
   // ── Print as base64 image via iframe ──────────────────────────────────────
   const dataUrl = canvas.toDataURL('image/png');
   const html = `<!DOCTYPE html><html><head><style>
-    @page{size:58mm auto;margin:2mm 2mm 4mm}
-    *{margin:0;padding:0}
-    img{width:54mm;display:block;image-rendering:pixelated}
+    @page{size:58mm auto;margin:0 0 -25mm 0}
+    html,body{margin:0;padding:0;height:fit-content}
+    img{width:44mm;display:block;margin:0;padding:0}
   </style></head><body><img src="${dataUrl}"></body></html>`;
 
 

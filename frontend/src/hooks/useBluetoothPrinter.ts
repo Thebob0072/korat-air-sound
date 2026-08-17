@@ -92,7 +92,7 @@ function buildReceiptBuffer(order: Order): Uint8Array {
   push(ESC, 0x21, 0x00);  // normal size
   push(ESC, 0x45, 0x00);  // bold off
   line('ประดับยนต์ · ติดตั้งฟิล์ม · ซ่อมแอร์');
-  line('064-496-5333');
+  line('093-321-8634');
   push(ESC, 0x61, 0x00);  // left
 
   // ── DOC TYPE ──
@@ -177,7 +177,7 @@ function buildReceiptBuffer(order: Order): Uint8Array {
     line('ใบเสนอราคามีอายุ 30 วัน');
     push(ESC, 0x45, 0x00);
     line('กรุณาตรวจสอบรายการก่อนยืนยัน');
-    line('โทร 064-496-5333');
+    line('โทร 093-321-8634');
   }
   push(ESC, 0x61, 0x00);
 
